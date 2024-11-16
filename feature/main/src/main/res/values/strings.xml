@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="enter_chat_key">Enter chat key</string>
+    <string name="proceed">Proceed</string>
+    <string name="message_field_placeholder">Message</string>
+</resources>

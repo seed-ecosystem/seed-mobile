@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Seed</string>
+    <string name="chats_bottom_bar_title">Chats</string>
+    <string name="settings_bottom_bar_title">Settings</string>
+</resources>
