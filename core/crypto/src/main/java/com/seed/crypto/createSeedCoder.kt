@@ -50,6 +50,9 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 	}
 
 	override suspend fun deriveNextKey(key: String): String {
-		TODO("Not yet implemented")
+		return hmacHelper.hmacSha256(
+			data = "NEXT-KEY",
+			base64Key = key
+		)
 	}
 }
