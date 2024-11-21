@@ -6,8 +6,7 @@ import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.KeyGenerator
 
-// Generate a random AES key
-suspend fun randomAESKey(): String {
+fun randomAESKey(): String {
 	val keyGenerator = KeyGenerator.getInstance("AES").apply {
 		init(AES_KEY_SIZE, secureRandom)
 	}

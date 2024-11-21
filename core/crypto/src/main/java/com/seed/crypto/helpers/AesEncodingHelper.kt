@@ -2,14 +2,12 @@ package com.seed.crypto.helpers
 
 import com.seed.crypto.util.AES_ALGORITHM
 import com.seed.crypto.util.GCM_TAG_LENGTH
-import com.seed.crypto.getSecretKeyFromString
 import com.seed.crypto.importCryptoKey
 import com.seed.crypto.util.IV_SIZE
 import com.seed.crypto.util.secureRandom
 import java.security.GeneralSecurityException
 import java.util.Base64
 import javax.crypto.Cipher
-import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 data class EncryptResult(
@@ -32,9 +30,6 @@ class AesEncodingHelper {
 
 			val encryptedDataBase64 = Base64.getEncoder().encodeToString(encryptedData)
 			val ivBase64 = Base64.getEncoder().encodeToString(iv)
-
-			println(encryptedDataBase64)
-			println(ivBase64)
 
 			return Result.success(
 				EncryptResult(

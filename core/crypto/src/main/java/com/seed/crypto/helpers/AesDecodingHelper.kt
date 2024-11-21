@@ -13,10 +13,6 @@ class AesDecodingHelper {
 		base64Iv: String,
 		base64Key: String
 	): Result<String> {
-		println("encrypted $encryptedBase64")
-		println("base64iv $base64Iv")
-		println("base66key $base64Key")
-
 		val key = importCryptoKey(base64Key, "AES")
 		val iv = Base64.getDecoder().decode(base64Iv)
 

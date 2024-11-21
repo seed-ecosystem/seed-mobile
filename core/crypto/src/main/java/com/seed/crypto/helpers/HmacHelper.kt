@@ -7,8 +7,7 @@ import java.util.Base64
 import javax.crypto.Mac
 
 class HmacHelper {
-	// HMAC-SHA256 signing
-	suspend fun hmacSha256(data: String, base64Key: String): String {
+	fun hmacSha256(data: String, base64Key: String): String {
 		val key = importCryptoKey(base64Key, "HmacSHA256")
 		val mac = Mac.getInstance(HMAC_ALGORITHM).apply {
 			init(key)
@@ -17,8 +16,7 @@ class HmacHelper {
 		return Base64.getEncoder().encodeToString(signature)
 	}
 
-	// HMAC-SHA256 verification
-	suspend fun verifyHmacSha256(data: String, base64Key: String, base64Signature: String): Boolean {
+	fun verifyHmacSha256(data: String, base64Key: String, base64Signature: String): Boolean {
 		val key = importCryptoKey(base64Key, "HmacSHA256")
 		val mac = Mac.getInstance(HMAC_ALGORITHM).apply {
 			init(key)
