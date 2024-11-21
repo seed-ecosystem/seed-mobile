@@ -1,4 +1,6 @@
-package com.seed.crypto
+package com.seed.domain.crypto
+
+import com.seed.domain.model.MessageContent
 
 data class DecodeOptions(
 	val content: String,
@@ -12,21 +14,16 @@ data class EncodeOptions(
 	val key: String,
 )
 
-class MessageContent(
-	val plainText: String
-)
-
 data class EncodeResult(
 	val content: String,
 	val contentIV: String,
 	val signature: String
 )
 
-
 interface SeedCoder {
 	suspend fun decode(
 		options: DecodeOptions
-	): MessageContent?
+	): String?
 
 	suspend fun encode(
 		options: EncodeOptions

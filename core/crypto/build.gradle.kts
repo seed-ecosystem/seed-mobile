@@ -14,5 +14,7 @@ kotlin {
 	}
 }
 dependencies {
+	api(project(":core:domain"))
+
 	testImplementation(libs.junit)
 }

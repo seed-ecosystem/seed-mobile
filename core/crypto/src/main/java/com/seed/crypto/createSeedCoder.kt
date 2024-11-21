@@ -3,13 +3,17 @@ package com.seed.crypto
 import com.seed.crypto.helpers.AesDecodingHelper
 import com.seed.crypto.helpers.AesEncodingHelper
 import com.seed.crypto.helpers.HmacHelper
+import com.seed.domain.crypto.DecodeOptions
+import com.seed.domain.crypto.EncodeOptions
+import com.seed.domain.crypto.EncodeResult
+import com.seed.domain.crypto.SeedCoder
 
 fun createSeedCoder(): SeedCoder = object : SeedCoder {
 	val hmacHelper = HmacHelper()
 	val decodingHelper = AesDecodingHelper()
 	val encodingHelper = AesEncodingHelper()
 
-	override suspend fun decode(options: DecodeOptions): MessageContent? {
+	override suspend fun decode(options: DecodeOptions): String? {
 		val verify = hmacHelper.verifyHmacSha256(
 			data = "SIGNATURE",
 			base64Key = options.key,
@@ -26,7 +30,7 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 			base64Key = options.key
 		)
 
-		return decryptedResult.getOrNull()?.let { MessageContent(it) }
+		return decryptedResult.getOrNull()
 	}
 
 	override suspend fun encode(options: EncodeOptions): EncodeResult? {
@@ -36,7 +40,7 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 		)
 
 		val encryptedContent = encodingHelper.encrypt(
-			plainText = options.content.plainText,
+			plainText = options.content.,
 			base64Key = options.key
 		)
 
