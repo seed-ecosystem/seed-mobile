@@ -26,3 +26,5 @@ include(":core:domain")
 include(":core:uikit")
 
 include(":feature:main")
+include(":core:data")
+include(":core:crypto")
