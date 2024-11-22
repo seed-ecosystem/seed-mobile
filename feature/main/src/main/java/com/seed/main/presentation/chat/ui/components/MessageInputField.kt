@@ -61,7 +61,9 @@ fun MessageInputField(
 		BasicTextField(
 			value = inputValue,
 			onValueChange = onInputValueUpdate,
-			textStyle = MaterialTheme.typography.bodyLarge,
+			textStyle = MaterialTheme.typography.bodyLarge.copy(
+				color = MaterialTheme.colorScheme.onBackground
+			),
 			cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
 			minLines = 1,
 			maxLines = 5,
