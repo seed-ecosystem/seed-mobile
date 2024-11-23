@@ -12,5 +12,11 @@ interface ChatDao {
 	fun insert(chatDbo: ChatDbo)
 
 	@Query("SELECT * FROM chatdbo")
-	fun getAll(): Flow<ChatDbo>
+	fun getAll(): Flow<List<ChatDbo>>
+
+	@Query("SELECT * FROM chatdbo WHERE chatId = :chatId")
+	fun getById(chatId: String): ChatDbo?
+
+	@Query("DELETE FROM chatdbo WHERE chatId = :chatId")
+	fun deleteById(chatId: String)
 }

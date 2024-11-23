@@ -1,19 +1,40 @@
 plugins {
-	id("java-library")
-	alias(libs.plugins.jetbrains.kotlin.jvm)
+	alias(libs.plugins.android.library)
+	alias(libs.plugins.kotlin.android)
+	alias(libs.plugins.ksp)
 }
 
-java {
-	sourceCompatibility = JavaVersion.VERSION_11
-	targetCompatibility = JavaVersion.VERSION_11
-}
+android {
+	namespace = "com.seed.data"
+	compileSdk = 34
 
-kotlin {
-	compilerOptions {
-		jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+	defaultConfig {
+		minSdk = 29
+
+		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+		consumerProguardFiles("consumer-rules.pro")
+	}
+
+	buildTypes {
+		release {
+			isMinifyEnabled = false
+			proguardFiles(
+				getDefaultProguardFile("proguard-android-optimize.txt"),
+				"proguard-rules.pro"
+			)
+		}
+	}
+	compileOptions {
+		sourceCompatibility = JavaVersion.VERSION_11
+		targetCompatibility = JavaVersion.VERSION_11
+	}
+	kotlinOptions {
+		jvmTarget = "11"
 	}
 }
 
 dependencies {
 	api(project(":core:domain"))
+
+	implementation(project(":core:persistence"))
 }

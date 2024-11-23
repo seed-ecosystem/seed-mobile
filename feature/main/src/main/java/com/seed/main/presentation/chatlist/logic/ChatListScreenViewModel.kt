@@ -53,16 +53,14 @@ class ChatListScreenViewModel(
 				)
 			}
 
-			val chats = chatsRepository
+			chatsRepository
 				.getAll()
-				.map { it.toChatListItem() }
-
-			_state.update {
-				it.copy(
-					isLoading = false,
-					chats = chats
-				)
-			}
+				.map { it.map(Chat::toChatListItem) }
+				.collect { chats ->
+					_state.update {
+						it.copy(isLoading = false, chats = chats)
+					}
+				}
 		}
 	}
 }

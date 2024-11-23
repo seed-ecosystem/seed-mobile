@@ -8,4 +8,5 @@ data class ChatDbo(
 	@PrimaryKey
 	val chatId: String,
 	val chatKey: String,
+	val chatName: String,
 )
