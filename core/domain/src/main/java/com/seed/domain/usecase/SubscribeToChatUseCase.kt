@@ -31,13 +31,13 @@ class SubscribeToChatUseCase(
 				key = chatKey
 			)
 
-			val decrypted = seedCoder.decode(decodeOptions)
+			val decrypted = seedCoder.decodeChatUpdate(decodeOptions)
 
 			return@map decrypted?.let {
 				MessageContent.RegularMessage(
 					messageId = "${Random.nextInt()}",
-					author = "author",
-					text = it,
+					author = decrypted.title,
+					text = decrypted.text,
 				)
 			} ?: MessageContent.UnknownMessage
 		}
