@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import com.seed.persistence.dao.ChatDao
 import com.seed.persistence.dbo.ChatDbo
 
-@Database(entities = [ChatDbo::class], version = 0)
+@Database(entities = [ChatDbo::class], version = 1)
 abstract class SeedDatabase : RoomDatabase() {
 	companion object {
 		const val DATABASE_NAME = "SeedDB"
