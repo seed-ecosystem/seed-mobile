@@ -46,6 +46,7 @@ dependencies {
 	implementation(project(":core:domain"))
 	implementation(project(":core:data"))
 	implementation(project(":core:crypto"))
+	implementation(project(":core:persistence"))
 
 	implementation(project(":feature:main"))
 
