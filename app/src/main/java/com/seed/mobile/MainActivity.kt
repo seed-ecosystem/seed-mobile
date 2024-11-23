@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
 
 		if (GlobalContext.getKoinApplicationOrNull() == null) {
 			startKoin {
-				androidContext(this@MainActivity)
+				androidContext(this@MainActivity.applicationContext)
 
 				modules(mainModule, appModule, persistenceModule)
 			}
