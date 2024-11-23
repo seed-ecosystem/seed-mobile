@@ -1,8 +1,11 @@
 package com.seed.main.presentation.chat.logic
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seed.domain.data.ChatRepository
+import com.seed.domain.model.MessageContent
+import com.seed.domain.usecase.SendMessageUseCase
+import com.seed.domain.usecase.SubscribeToChatUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +50,8 @@ private data class ChatScreenVmState(
 }
 
 class ChatScreenViewModel(
-	private val chatRepository: ChatRepository,
+	private val subscribeToChatUseCase: SubscribeToChatUseCase,
+	private val sendMessageUseCase: SendMessageUseCase,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
 
@@ -75,9 +79,13 @@ class ChatScreenViewModel(
 				)
 			}
 
-			chatRepository
-				.getData(_state.value.chatId)
+			subscribeToChatUseCase(chatId = _state.value.chatId)
 				.catch { cause ->
+					Log.e(
+						"ChatScreenViewModel",
+						"An error occured: ${cause.localizedMessage}"
+					)
+
 					_state.update {
 						it.copy(
 							isLoading = false,
@@ -85,14 +93,28 @@ class ChatScreenViewModel(
 						)
 					}
 				}
-				.collect { messages ->
-					val newMessage = Message(
-						id = Random.nextLong(),
-						authorType = AuthorType.Others,
-						authorName = "TODO",
-						messageText = "TODO()",
-						dateTime = LocalDateTime.now()
-					)
+				.collect { newMessageContent ->
+					val newMessage = when (newMessageContent) {
+						is MessageContent.RegularMessage -> {
+							Message(
+								id = newMessageContent.messageId,
+								authorType = AuthorType.Others, // todo
+								authorName = newMessageContent.author,
+								messageText = newMessageContent.text,
+								dateTime = LocalDateTime.now() // todo
+							)
+						}
+
+						is MessageContent.UnknownMessage -> {
+							Message(
+								id = "${Random.nextLong()}",
+								authorType = AuthorType.Others,
+								authorName = "Unknown",
+								messageText = "Unknown message",
+								dateTime = LocalDateTime.now()
+							)
+						}
+					}
 
 					val newMessagesList = _state.value.messages?.let { oldMessages ->
 						oldMessages + newMessage
@@ -118,21 +140,20 @@ class ChatScreenViewModel(
 	}
 
 	fun sendMessage(onSuccess: () -> Unit) {
-		if (_state.value.inputFieldValue.isBlank()) return
+		viewModelScope.launch {
+			if (_state.value.inputFieldValue.isBlank()) return@launch
 
-		_state.update {
-			it.copy(
-				messages = (_state.value.messages ?: emptyList()) + Message(
-					id = (_state.value.messages?.size ?: 0) + 1L,
-					authorType = AuthorType.Self,
-					authorName = "You",
-					messageText = _state.value.inputFieldValue.trim(),
-					dateTime = LocalDateTime.now()
-				),
-				inputFieldValue = ""
+			sendMessageUseCase(
+				_state.value.chatId,
+				messageAuthor = "Author", // todo
+				messageText = _state.value.inputFieldValue
 			)
-		}
 
-		onSuccess()
+			_state.update {
+				it.copy(inputFieldValue = "")
+			}
+
+			onSuccess()
+		}
 	}
 }

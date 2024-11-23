@@ -8,7 +8,7 @@ enum class AuthorType {
 }
 
 data class Message(
-	val id: Long,
+	val id: String,
 	val authorType: AuthorType,
 	val authorName: String,
 	val messageText: String,

@@ -6,6 +6,7 @@ import com.seed.domain.data.ChatRepository
 import com.seed.domain.model.MessageContent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlin.random.Random
 
 class SubscribeToChatUseCase(
 	private val chatRepository: ChatRepository,
@@ -25,6 +26,7 @@ class SubscribeToChatUseCase(
 
 			return@map decrypted?.let {
 				MessageContent.RegularMessage(
+					messageId = "${Random.nextInt()}",
 					author = "author",
 					text = it,
 				)

@@ -11,7 +11,6 @@ class SendMessageUseCase(
 ) {
 	suspend operator fun invoke(
 		chatId: String,
-		messageId: String,
 		messageAuthor: String,
 		messageText: String,
 	) {
@@ -26,7 +25,7 @@ class SendMessageUseCase(
 
 		val dto = SendMessageDto(
 			chatId = chatId,
-			messageId = messageId,
+			messageId = "messageId", // todo
 			encryptedContentBase64 = encodingResult?.content ?: "n/a",
 			encryptedContentIv = encodingResult?.contentIv ?: "n/a"
 		)

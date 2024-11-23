@@ -33,7 +33,7 @@ fun generateRandomMessages(): List<Message> {
 
     return List(Random.nextInt(0, 50)) {
         Message(
-            id = Random.nextLong(Long.MAX_VALUE),
+            id = "${Random.nextLong(Long.MAX_VALUE)}",
             authorType = AuthorType.Others,
             authorName = authors[Random.nextInt(authors.size)],
             messageText = messages[Random.nextInt(messages.size)],
