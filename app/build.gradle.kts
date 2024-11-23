@@ -43,6 +43,9 @@ android {
 
 dependencies {
 	implementation(project(":core:uikit"))
+	implementation(project(":core:domain"))
+	implementation(project(":core:data"))
+	implementation(project(":core:crypto"))
 
 	implementation(project(":feature:main"))
 

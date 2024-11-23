@@ -40,14 +40,14 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 		)
 
 		val encryptedContent = encodingHelper.encrypt(
-			plainText = options.content.,
+			plainText = options.content,
 			base64Key = options.key
 		)
 
 		return encryptedContent.getOrNull()?.let {
 			EncodeResult(
 				content = it.encryptedContent,
-				contentIV = it.iv,
+				contentIv = it.iv,
 				signature = signature
 			)
 		}

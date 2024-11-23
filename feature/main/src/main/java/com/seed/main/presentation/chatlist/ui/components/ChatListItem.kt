@@ -91,6 +91,7 @@ fun ChatListItemPreview() {
 	ChatListItem(
 		onClick = {},
 		chat = ChatListItem(
+			chatId = "",
 			chatName = "Some awesome group",
 			lastSentMessageDateTime = LocalDateTime.now(),
 			lastSentMessageText = "Some last message text too long long lorem ipsum dolor. some last message text too long long lorem ipsum dolor. some last message text too long long lorem"

@@ -1,7 +1,5 @@
 package com.seed.domain.crypto
 
-import com.seed.domain.model.MessageContent
-
 data class DecodeOptions(
 	val content: String,
 	val contentIv: String,
@@ -10,13 +8,13 @@ data class DecodeOptions(
 )
 
 data class EncodeOptions(
-	val content: MessageContent,
+	val content: String,
 	val key: String,
 )
 
 data class EncodeResult(
 	val content: String,
-	val contentIV: String,
+	val contentIv: String,
 	val signature: String
 )
 

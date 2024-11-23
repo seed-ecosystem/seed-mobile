@@ -2,20 +2,23 @@ package com.seed.main.presentation.chat.logic
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import com.seed.domain.data.ChatRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import kotlin.random.Random
 
 private data class ChatScreenVmState(
 	val messages: List<Message>? = null,
 	val inputFieldValue: String = "",
 	val chatName: String = "",
+	val chatId: String = "",
 	val isLoading: Boolean = false,
 	val isError: Boolean = false,
 ) {
@@ -43,7 +46,9 @@ private data class ChatScreenVmState(
 	}
 }
 
-class ChatScreenViewModel : ViewModel() {
+class ChatScreenViewModel(
+	private val chatRepository: ChatRepository,
+) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
 
 	val state: StateFlow<ChatScreenUiState> = _state
@@ -70,14 +75,37 @@ class ChatScreenViewModel : ViewModel() {
 				)
 			}
 
-			delay(100L)
+			chatRepository
+				.getData(_state.value.chatId)
+				.catch { cause ->
+					_state.update {
+						it.copy(
+							isLoading = false,
+							isError = true
+						)
+					}
+				}
+				.collect { messages ->
+					val newMessage = Message(
+						id = Random.nextLong(),
+						authorType = AuthorType.Others,
+						authorName = "TODO",
+						messageText = "TODO()",
+						dateTime = LocalDateTime.now()
+					)
 
-			_state.update {
-				it.copy(
-					isLoading = false,
-					messages = generateRandomMessages()
-				)
-			}
+					val newMessagesList = _state.value.messages?.let { oldMessages ->
+						oldMessages + newMessage
+					} ?: listOf(newMessage)
+
+					_state.update {
+						it.copy(
+							isLoading = false,
+							isError = false,
+							messages = newMessagesList
+						)
+					}
+				}
 		}
 	}
 

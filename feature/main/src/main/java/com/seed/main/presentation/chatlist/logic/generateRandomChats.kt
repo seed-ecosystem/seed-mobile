@@ -38,6 +38,7 @@ fun generateRandomChats(): List<ChatListItem> {
 
     return List(Random.nextInt(0, 50)) {
         ChatListItem(
+            chatId = "${Random.nextInt(Int.MAX_VALUE)}",
             chatName = titles[Random.nextInt(titles.size)],
             lastSentMessageDateTime = LocalDateTime.now()
                 .minusDays(Random.nextInt(30).toLong())

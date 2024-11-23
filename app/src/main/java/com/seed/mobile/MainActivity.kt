@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import com.seed.main.di.mainModule
+import com.seed.mobile.di.appModule
 import com.seed.uikit.ui.theme.MobileTheme
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
@@ -20,7 +21,7 @@ class MainActivity : ComponentActivity() {
 			startKoin {
 				androidContext(this@MainActivity)
 
-				modules(mainModule)
+				modules(mainModule, appModule)
 			}
 		}
 

@@ -2,13 +2,15 @@ package com.seed.main.presentation.chatlist.logic
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import com.seed.domain.data.ChatsRepository
+import com.seed.domain.model.Chat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 private data class ChatListScreenVmState(
 	val chats: List<ChatListItem>? = null,
@@ -30,7 +32,9 @@ private data class ChatListScreenVmState(
 	}
 }
 
-class ChatListScreenViewModel : ViewModel() {
+class ChatListScreenViewModel(
+	private val chatsRepository: ChatsRepository,
+) : ViewModel() {
 	private val _state = MutableStateFlow(ChatListScreenVmState())
 
 	val state = _state
@@ -49,14 +53,25 @@ class ChatListScreenViewModel : ViewModel() {
 				)
 			}
 
-			delay(300L)
+			val chats = chatsRepository
+				.getAll()
+				.map { it.toChatListItem() }
 
 			_state.update {
 				it.copy(
 					isLoading = false,
-					chats = generateRandomChats()
+					chats = chats
 				)
 			}
 		}
 	}
+}
+
+private fun Chat.toChatListItem(): ChatListItem {
+	return ChatListItem(
+		chatId = this.chatId,
+		chatName = this.name,
+		lastSentMessageDateTime = LocalDateTime.now(), // todo
+		lastSentMessageText = "N/A" // todo
+	)
 }
