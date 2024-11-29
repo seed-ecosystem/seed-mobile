@@ -17,10 +17,10 @@ import com.seed.mobile.LoggerImpl
 import org.koin.dsl.module
 
 val appModule = module {
-	factory<ChatRepository> { ChatRepositoryImpl(get()) }
+	factory<ChatRepository> { ChatRepositoryImpl(get(), get(), get()) }
 
 	factory { SubscribeToChatUseCase(get(), get(), get()) }
-	factory { SendMessageUseCase(get(), get(), get()) }
+	factory { SendMessageUseCase(get(), get(), get(), get()) }
 	factory { GetChatHistoryUseCase(get(), get(), get()) }
 	factory { GetMessageKeyUseCase(get(), get()) }
 

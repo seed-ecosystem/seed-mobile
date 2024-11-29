@@ -4,9 +4,10 @@ import kotlinx.coroutines.flow.Flow
 
 data class SendMessageDto(
 	val chatId: String,
-	val messageId: String,
+	val nonce: Int,
 	val encryptedContentBase64: String,
 	val encryptedContentIv: String,
+	val signature: String,
 )
 
 data class ChatUpdate(

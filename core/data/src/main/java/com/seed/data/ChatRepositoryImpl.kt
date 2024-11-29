@@ -1,5 +1,8 @@
 package com.seed.data
 
+import com.seed.domain.Logger
+import com.seed.domain.api.ApiResponse
+import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatUpdate
 import com.seed.domain.data.SendMessageDto
@@ -14,7 +17,9 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.EmptyCoroutineContext
 
 class ChatRepositoryImpl(
-	private val chatDao: ChatDao
+	private val chatDao: ChatDao,
+	private val messagingApi: SeedMessagingApi,
+	private val logger: Logger,
 ) : ChatRepository {
 	private val chatUpdatesSharedFlow = MutableSharedFlow<ChatUpdate>()
 	private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
@@ -34,7 +39,25 @@ class ChatRepositoryImpl(
 	}
 
 	override suspend fun sendMessage(sendMessageDto: SendMessageDto) {
-		generateRandomMessage()
+		logger.d(
+			tag = "ChatRepository",
+			message = "Sending message $sendMessageDto"
+		)
+
+		val result = messagingApi.sendMessage(
+			chatId = sendMessageDto.chatId,
+			content = sendMessageDto.encryptedContentBase64,
+			contentIv = sendMessageDto.encryptedContentIv,
+			nonce = sendMessageDto.nonce,
+			signature = sendMessageDto.signature,
+		)
+
+		if (result is ApiResponse.Failure) {
+			logger.e(
+				tag = "ChatRepository",
+				message = "Error while trying to send api send request: $result"
+			)
+		}
 	}
 
 	override suspend fun getChatKey(chatId: String): String? = withContext(Dispatchers.IO) {

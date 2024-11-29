@@ -36,6 +36,21 @@ data class HistoryRequest(
 	val amount: Int,
 )
 
+@Serializable
+data class SendMessageRequest(
+	val type: String,
+	val message: Message
+) {
+	@Serializable
+	data class Message(
+		val chatId: String,
+		val content: String,
+		val contentIv: String,
+		val nonce: Int,
+		val signature: String,
+	)
+}
+
 fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMessagingApi {
 	val client = HttpClient(OkHttp) {
 		install(WebSockets)
@@ -141,7 +156,33 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 			nonce: Int,
 			signature: String
 		): ApiResponse<Unit> {
-			TODO("Not yet implemented")
+			websocketSession.await().let { session ->
+				val jsonRequest = Json.encodeToString(
+					SendMessageRequest(
+						type = "send",
+						message = SendMessageRequest.Message(
+							chatId = chatId,
+							content = content,
+							contentIv = contentIv,
+							nonce = nonce,
+							signature = signature
+						)
+					)
+				)
+
+				session.send(jsonRequest)
+			}
+
+			return suspendCoroutine { continuation ->
+				responseQueue.add { response ->
+					logger.d(
+						tag = "SeedMessagingApi sendMessage",
+						message = "Response: ${response.responseJson}",
+					)
+
+					continuation.resume(ApiResponse.Success(Unit))
+				}
+			}
 		}
 	}
 }

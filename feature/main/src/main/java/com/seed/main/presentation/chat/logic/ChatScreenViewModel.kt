@@ -118,7 +118,7 @@ class ChatScreenViewModel(
 					}
 				}
 				.collect { newMessageContent ->
-					val newMessage = when (newMessageContent) {
+					val newMessage: Message? = when (newMessageContent) {
 						is MessageContent.RegularMessage -> {
 							Message(
 								nonce = newMessageContent.nonce,
@@ -130,13 +130,7 @@ class ChatScreenViewModel(
 						}
 
 						is MessageContent.UnknownMessage -> {
-							Message(
-								nonce = Random.nextInt(),
-								authorType = AuthorType.Others,
-								authorName = "Unknown",
-								messageText = "Unknown message",
-								dateTime = LocalDateTime.now()
-							)
+							null
 						}
 					}
 
@@ -148,7 +142,7 @@ class ChatScreenViewModel(
 						it.copy(
 							isLoading = false,
 							isError = false,
-							messages = newMessagesList
+							messages = newMessagesList.mapNotNull { it }
 						)
 					}
 				}
@@ -168,9 +162,10 @@ class ChatScreenViewModel(
 			if (_state.value.inputFieldValue.isBlank()) return@launch
 
 			sendMessageUseCase(
-				_state.value.chatId,
+				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",//_state.value.chatId,
 				messageAuthor = "Author", // todo
-				messageText = _state.value.inputFieldValue
+				messageText = _state.value.inputFieldValue,
+				lastMessageNonce = _state.value.messages?.first()?.nonce ?: return@launch,
 			)
 
 			_state.update {

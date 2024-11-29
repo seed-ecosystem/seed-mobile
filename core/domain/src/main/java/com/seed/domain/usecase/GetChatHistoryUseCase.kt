@@ -14,7 +14,7 @@ class GetChatHistoryUseCase(
 ) {
 	suspend operator fun invoke(
 		chatId: String = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=", // TODO
-		amount: Int = 50, // TODO change this
+		amount: Int = 5000, // TODO change this
 		nonce: Int = 0,
 		chatKey: String = "/uwFt2yxHi59l26H9V8VTN3Kq+FtRewuWNfz1TNVcnM=", // todo
 	): List<MessageContent>? {
@@ -45,16 +45,21 @@ class GetChatHistoryUseCase(
 
 					println("decodeOptions: $decodeOptions")
 
-					val decodeResult = coder.decodeChatUpdate(
-						options = decodeOptions
-					)
-
-					if (decodeResult != null) {
-						return@map MessageContent.RegularMessage(
-							nonce = message.nonce,
-							author = decodeResult.title,
-							text = decodeResult.text,
+					try {
+						val decodeResult = coder.decodeChatUpdate(
+							options = decodeOptions
 						)
+
+						if (decodeResult != null) {
+							return@map MessageContent.RegularMessage(
+								nonce = message.nonce,
+								author = decodeResult.title,
+								text = decodeResult.text,
+							)
+						}
+					} catch (ex: Exception) {
+						println("exception: ${ex.message}")
+						return@map MessageContent.UnknownMessage
 					}
 
 					return@map MessageContent.UnknownMessage
