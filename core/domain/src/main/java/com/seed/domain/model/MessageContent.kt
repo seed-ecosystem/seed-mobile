@@ -2,7 +2,7 @@ package com.seed.domain.model
 
 sealed interface MessageContent {
 	data class RegularMessage(
-		val messageId: String,
+		val nonce: Int,
 		val author: String,
 		val text: String,
 	) : MessageContent

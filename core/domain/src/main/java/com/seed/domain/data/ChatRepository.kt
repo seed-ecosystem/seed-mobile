@@ -20,5 +20,5 @@ interface ChatRepository {
 
 	suspend fun sendMessage(sendMessageDto: SendMessageDto)
 
-	suspend fun getChatKey(chatId: String): String?
+	suspend fun getChatKey(chatId: String): String? // todo this should return nonce of the key also
 }

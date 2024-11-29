@@ -62,6 +62,7 @@ dependencies {
 	implementation(libs.koin.compose.viewmodel)
 
 	implementation(libs.kotlinx.serialization.json)
+	implementation(project(":core:api"))
 
 	testImplementation(libs.junit)
 

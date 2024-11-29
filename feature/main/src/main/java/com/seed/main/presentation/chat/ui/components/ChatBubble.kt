@@ -129,7 +129,7 @@ private fun Modifier.borderByAuthorType(authorType: AuthorType): Modifier {
 private fun ChatBubblePreviewOthers() {
 	ChatBubble(
 		message = Message(
-			id = "1L",
+			nonce = 220,
 			authorType = AuthorType.Others,
 			authorName = "Andrew",
 			messageText = "Some message text.. idk",
@@ -143,7 +143,7 @@ private fun ChatBubblePreviewOthers() {
 private fun ChatBubblePreviewSelf() {
 	ChatBubble(
 		message = Message(
-			id = "1",
+			nonce = 1,
 			authorType = AuthorType.Self,
 			authorName = "я",
 			messageText = "одногруппник работает на первой линии в b2b инфосек-конторе, иногда отвечает на тикеты прямо на парах. это милейшее зрелище, должен сказать: два взрослых человека на зарплате вежливо и предельно культурно обсуждают технические проблемы.",

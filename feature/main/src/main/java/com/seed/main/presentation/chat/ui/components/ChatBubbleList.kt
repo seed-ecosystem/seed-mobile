@@ -48,7 +48,7 @@ fun ChatBubbleList(
 				}
 			}
 
-			items(messages, key = { it.id }) { message ->
+			items(messages, key = { it.nonce }) { message ->
 				Row(
 					horizontalArrangement = horizontalArrangementByAuthorType(message),
 					modifier = Modifier

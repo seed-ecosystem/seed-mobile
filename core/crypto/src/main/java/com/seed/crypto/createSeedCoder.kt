@@ -19,6 +19,8 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 	val decodingHelper = AesDecodingHelper()
 	val encodingHelper = AesEncodingHelper()
 
+	val json = Json { ignoreUnknownKeys = true }
+
 	override suspend fun decodeChatUpdate(options: DecodeOptions): ChatUpdateDecodeResult? {
 		val decodeResult = decodingHelper.decode(
 			encryptedBase64 = options.content,
@@ -27,7 +29,7 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 		)
 
 		val decryptedMessageContent = decodeResult.getOrNull()?.let {
-			Json.decodeFromString<DecryptedMessageContent>(it)
+			json.decodeFromString<DecryptedMessageContent>(it)
 		}
 
 		return decryptedMessageContent?.let {

@@ -3,7 +3,9 @@ package com.seed.main.presentation.chat.logic
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seed.domain.Logger
 import com.seed.domain.model.MessageContent
+import com.seed.domain.usecase.GetChatHistoryUseCase
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +54,8 @@ private data class ChatScreenVmState(
 class ChatScreenViewModel(
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
+	private val getChatHistoryUseCase: GetChatHistoryUseCase,
+	private val logger: Logger,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
 
@@ -79,6 +83,26 @@ class ChatScreenViewModel(
 				)
 			}
 
+			val result = getChatHistoryUseCase()
+
+			logger.d(
+				tag = "ChatScreenViewModel loadData",
+				message = "getChatHistoryUseCase result: $result"
+			)
+
+			if (result != null) {
+				_state.update {
+					it.copy(
+						messages = result
+							.mapNotNull { messageContent ->
+								if (messageContent is MessageContent.RegularMessage) {
+									return@mapNotNull messageContent.toMessage()
+								} else return@mapNotNull null
+							}
+					)
+				}
+			}
+
 			subscribeToChatUseCase(chatId = _state.value.chatId)
 				.catch { cause ->
 					Log.e(
@@ -97,7 +121,7 @@ class ChatScreenViewModel(
 					val newMessage = when (newMessageContent) {
 						is MessageContent.RegularMessage -> {
 							Message(
-								id = newMessageContent.messageId,
+								nonce = newMessageContent.nonce,
 								authorType = AuthorType.Others, // todo
 								authorName = newMessageContent.author,
 								messageText = newMessageContent.text,
@@ -107,7 +131,7 @@ class ChatScreenViewModel(
 
 						is MessageContent.UnknownMessage -> {
 							Message(
-								id = "${Random.nextLong()}",
+								nonce = Random.nextInt(),
 								authorType = AuthorType.Others,
 								authorName = "Unknown",
 								messageText = "Unknown message",
@@ -156,4 +180,14 @@ class ChatScreenViewModel(
 			onSuccess()
 		}
 	}
+}
+
+fun MessageContent.RegularMessage.toMessage(): Message {
+	return Message(
+		nonce = this.nonce,
+		authorType = AuthorType.Others, // todo
+		authorName = this.author,
+		messageText = this.text,
+		dateTime = LocalDateTime.now() // todo
+	)
 }

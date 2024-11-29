@@ -35,7 +35,7 @@ class SubscribeToChatUseCase(
 
 			return@map decrypted?.let {
 				MessageContent.RegularMessage(
-					messageId = "${Random.nextInt()}",
+					nonce = Random.nextInt(),
 					author = decrypted.title,
 					text = decrypted.text,
 				)
