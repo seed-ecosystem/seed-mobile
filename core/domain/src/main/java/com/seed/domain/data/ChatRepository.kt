@@ -16,10 +16,17 @@ data class ChatUpdate(
 	val encryptedContentIv: String,
 )
 
+data class GetLastChatKeyResult(
+	val key: String,
+	val keyNonce: Int
+)
+
 interface ChatRepository {
 	suspend fun getData(chatId: String): Flow<ChatUpdate>
 
 	suspend fun sendMessage(sendMessageDto: SendMessageDto)
 
-	suspend fun getChatKey(chatId: String): String? // todo this should return nonce of the key also
+	suspend fun getChatKey(chatId: String, nonce: Int): String?
+
+	suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult?
 }

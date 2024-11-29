@@ -57,7 +57,8 @@ class ChatImportScreenViewModel(
 		viewModelScope.launch {
 			chatsRepository.add(
 				key = _state.value.keyValue,
-				name = "Chat-${Random.nextInt(1, 1000)}"
+				keyNonce = 0, // TODO
+				name = "Chat-${Random.nextInt(1, 1000)}",
 			)
 
 			onSuccess()

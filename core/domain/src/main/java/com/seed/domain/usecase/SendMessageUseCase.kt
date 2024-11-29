@@ -18,13 +18,6 @@ class SendMessageUseCase(
 		messageText: String,
 		lastMessageNonce: Int,
 	) {
-//		val chatKey = chatRepository.getChatKey(chatId)
-//
-//		if (chatKey == null) {
-//			logger.e(tag = "SendMessageUseCase", message = "chat key is null")
-//			return
-//		}
-
 		logger.d(
 			tag = "SendMessageUseCase",
 			message = """

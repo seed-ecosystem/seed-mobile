@@ -11,11 +11,14 @@ class GetMessageKeyUseCase(
 		chatId: String,
 		nonce: Int,
 	): String? {
-//		var key: String = chatRepository.getChatKey(chatId) ?: return null
-		// todo
-		var key = "/uwFt2yxHi59l26H9V8VTN3Kq+FtRewuWNfz1TNVcnM="
+		val cachedKey = chatRepository.getChatKey(chatId, nonce)
 
-		var keyNonce = 0 // TODO
+		if (cachedKey != null) return cachedKey
+
+		val getLastChatKeyResult = chatRepository.getLastChatKey(chatId = chatId) ?: return null
+
+		var key = getLastChatKeyResult.key
+		var keyNonce = getLastChatKeyResult.keyNonce
 
 		while (keyNonce != nonce) {
 			key = coder.deriveNextKey(key)

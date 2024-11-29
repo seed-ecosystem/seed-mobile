@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.random.Random
 
-class SubscribeToChatUseCase(
+class SubscribeToChatUseCase( // TODO: that's all is temp and should be refactored
 	private val chatRepository: ChatRepository,
 	private val seedCoder: SeedCoder,
 	private val logger: Logger,
@@ -17,9 +17,9 @@ class SubscribeToChatUseCase(
 	suspend operator fun invoke(chatId: String): Flow<MessageContent> = chatRepository
 		.getData(chatId)
 		.map { update ->
-			val chatKey = chatRepository.getChatKey(chatId)
+			val chatKeyResult = chatRepository.getLastChatKey(chatId)
 
-			if (chatKey == null) {
+			if (chatKeyResult == null) {
 				logger.e(tag = "SubscribeToChatUseCase", "chatKey is null")
 				return@map MessageContent.UnknownMessage
 			}
@@ -28,7 +28,7 @@ class SubscribeToChatUseCase(
 				content = update.encryptedContentBase64,
 				contentIv = update.encryptedContentIv,
 				signature = "", // TODO
-				key = chatKey
+				key = chatKeyResult.key
 			)
 
 			val decrypted = seedCoder.decodeChatUpdate(decodeOptions)

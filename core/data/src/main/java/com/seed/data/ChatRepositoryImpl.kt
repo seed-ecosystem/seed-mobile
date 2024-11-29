@@ -5,8 +5,10 @@ import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatUpdate
+import com.seed.domain.data.GetLastChatKeyResult
 import com.seed.domain.data.SendMessageDto
 import com.seed.persistence.dao.ChatDao
+import com.seed.persistence.dao.ChatKeyDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -18,6 +20,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 class ChatRepositoryImpl(
 	private val chatDao: ChatDao,
+	private val chatKeyDao: ChatKeyDao,
 	private val messagingApi: SeedMessagingApi,
 	private val logger: Logger,
 ) : ChatRepository {
@@ -60,8 +63,19 @@ class ChatRepositoryImpl(
 		}
 	}
 
-	override suspend fun getChatKey(chatId: String): String? = withContext(Dispatchers.IO) {
-		return@withContext chatDao.getById(chatId)?.chatKey
+	override suspend fun getChatKey(chatId: String, nonce: Int): String? = withContext(Dispatchers.IO) {
+		val chatKey = chatKeyDao.getByNonce(chatId, nonce)
+
+		return@withContext chatKey?.key
+	}
+
+	override suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult? {
+		val chatKeyDbo = chatKeyDao.getLatest(chatId) ?: return null
+
+		return GetLastChatKeyResult(
+			key = chatKeyDbo.key,
+			keyNonce = chatKeyDbo.nonce
+		)
 	}
 
 	private suspend fun generateRandomMessage() {
