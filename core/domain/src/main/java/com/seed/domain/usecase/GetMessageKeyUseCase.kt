@@ -25,6 +25,8 @@ class GetMessageKeyUseCase(
 			keyNonce++
 		}
 
+		chatRepository.insertChatKey(chatId, nonce, key)
+
 		return key
 	}
 }

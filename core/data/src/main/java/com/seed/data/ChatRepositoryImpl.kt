@@ -9,6 +9,7 @@ import com.seed.domain.data.GetLastChatKeyResult
 import com.seed.domain.data.SendMessageDto
 import com.seed.persistence.dao.ChatDao
 import com.seed.persistence.dao.ChatKeyDao
+import com.seed.persistence.dbo.ChatKeyDbo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -32,15 +33,15 @@ class ChatRepositoryImpl(
 			.subscribeToChat(chatId = chatId, nonce = 0)
 
 		logger.d(
-			tag = "ChatRepositoryImpl subscribeToTheChat",
-			message = "Subscribe success, API result: $subscriptionResult"
+			tag = "ChatRepository",
+			message = "subscribeToTheChat: Subscribe success, API result: $subscriptionResult"
 		)
 	}
 
 	override suspend fun sendMessage(sendMessageDto: SendMessageDto) = withContext(Dispatchers.IO) {
 		logger.d(
 			tag = "ChatRepository",
-			message = "Sending message $sendMessageDto"
+			message = "sendMessage: Sending message $sendMessageDto"
 		)
 
 		val result = messagingApi.sendMessage(
@@ -54,7 +55,7 @@ class ChatRepositoryImpl(
 		if (result is ApiResponse.Failure) {
 			logger.e(
 				tag = "ChatRepository",
-				message = "Error while trying to send api send request: $result"
+				message = "sendMessage: Error while trying to send api send request: $result"
 			)
 		}
 	}
@@ -73,6 +74,17 @@ class ChatRepositoryImpl(
 			return@withContext GetLastChatKeyResult(
 				key = chatKeyDbo.key,
 				keyNonce = chatKeyDbo.nonce
+			)
+		}
+
+	override suspend fun insertChatKey(chatId: String, nonce: Int, key: String) =
+		withContext(Dispatchers.IO) {
+			chatKeyDao.set(
+				ChatKeyDbo(
+					key = key,
+					chatId = chatId,
+					nonce = nonce,
+				)
 			)
 		}
 }

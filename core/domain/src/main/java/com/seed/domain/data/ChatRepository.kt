@@ -32,4 +32,6 @@ interface ChatRepository {
 	suspend fun getChatKey(chatId: String, nonce: Int): String?
 
 	suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult?
+
+	suspend fun insertChatKey(chatId: String, nonce: Int, key: String)
 }

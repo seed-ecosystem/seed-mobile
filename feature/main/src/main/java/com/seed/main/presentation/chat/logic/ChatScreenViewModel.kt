@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.DecodedChatEvent
+import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,12 +104,12 @@ class ChatScreenViewModel(
 						else -> null
 					}
 
-					updateMessagesWithNewMessage(newMessage)
+					newMessage?.let { updateMessagesWithNewMessage(it) }
 				}
 		}
 	}
 
-	private fun updateMessagesWithNewMessage(newMessage: Message?) {
+	private fun updateMessagesWithNewMessage(newMessage: Message) {
 		val newMessageList = _state.value.messages?.let { oldMessages ->
 			oldMessages + listOf(newMessage)
 		} ?: listOf(newMessage)
@@ -117,7 +118,7 @@ class ChatScreenViewModel(
 			it.copy(
 				isLoading = false,
 				isError = false,
-				messages = newMessageList.mapNotNull { it }
+				messages = newMessageList,
 			)
 		}
 	}
@@ -144,22 +145,37 @@ class ChatScreenViewModel(
 		}
 	}
 
-	fun sendMessage(onSuccess: () -> Unit) {
+	fun sendMessage(onSuccess: () -> Unit, onFailure: () -> Unit) {
 		viewModelScope.launch {
 			if (_state.value.inputFieldValue.isBlank()) return@launch
 
-			sendMessageUseCase(
+			val lastMessageNonce = _state.value.messages?.last()?.nonce ?: return@launch
+
+			val sendResult = sendMessageUseCase(
 				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",//_state.value.chatId,
 				messageAuthor = "Author", // todo
 				messageText = _state.value.inputFieldValue,
-				lastMessageNonce = _state.value.messages?.last()?.nonce ?: return@launch,
+				lastMessageNonce =  lastMessageNonce,
 			)
+
+			if (sendResult is SendMessageResult.Success) {
+				updateMessagesWithNewMessage(
+					newMessage = Message(
+						nonce = lastMessageNonce + 1,
+						authorType = AuthorType.Self,
+						authorName = "You",
+						messageText = _state.value.inputFieldValue,
+						dateTime = LocalDateTime.now(),
+					)
+				)
+				onSuccess()
+			}
 
 			_state.update {
 				it.copy(inputFieldValue = "")
 			}
 
-			onSuccess()
+			onFailure()
 		}
 	}
 }

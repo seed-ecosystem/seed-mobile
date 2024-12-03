@@ -6,6 +6,12 @@ import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.SendMessageDto
 
+sealed interface SendMessageResult {
+	data object Success : SendMessageResult
+
+	data object Failure : SendMessageResult
+}
+
 class SendMessageUseCase(
 	private val chatRepository: ChatRepository,
 	private val seedCoder: SeedCoder,
@@ -17,14 +23,15 @@ class SendMessageUseCase(
 		messageAuthor: String,
 		messageText: String,
 		lastMessageNonce: Int,
-	) {
+	): SendMessageResult {
 		logger.d(
 			tag = "SendMessageUseCase",
 			message = """
-				chatId $chatId
-				messageAuthor $messageAuthor
-				messageText $messageText
-				lastMessageNonce $lastMessageNonce
+				Sending message with this data:
+				- chatId $chatId
+				- messageAuthor $messageAuthor
+				- messageText $messageText
+				- lastMessageNonce $lastMessageNonce
 			""".trimIndent()
 		)
 
@@ -34,8 +41,8 @@ class SendMessageUseCase(
 		)
 
 		if (messageKey == null) {
-			logger.e(tag = "SendMessageUseCase", message = "message key is null")
-			return
+			logger.e(tag = "SendMessageUseCase", message = "Error: message key is null")
+			return SendMessageResult.Failure
 		}
 
 		val encodingOptions = MessageEncodeOptions(
@@ -48,14 +55,18 @@ class SendMessageUseCase(
 		val encodingResult = seedCoder
 			.encodeMessage(encodingOptions)
 
+		if (encodingResult == null) return SendMessageResult.Failure
+
 		val dto = SendMessageDto(
 			chatId = chatId,
 			nonce = lastMessageNonce + 1,
-			encryptedContentBase64 = encodingResult?.content ?: "n/a",
-			encryptedContentIv = encodingResult?.contentIv ?: "n/a",
-			signature = encodingResult?.signature ?: "n/a", // todo resolve these n/a's
+			encryptedContentBase64 = encodingResult.content,
+			encryptedContentIv = encodingResult.contentIv,
+			signature = encodingResult.signature,
 		)
 
 		chatRepository.sendMessage(dto)
+
+		return SendMessageResult.Success
 	}
 }

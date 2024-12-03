@@ -1,10 +1,13 @@
 package com.seed.api
 
+import com.seed.api.models.EventWrapper
+import com.seed.api.models.RawChatEvent
+import com.seed.api.models.SendMessageRequest
+import com.seed.api.models.SubscribeRequest
 import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.model.ChatEvent
-import com.seed.domain.usecase.DecodedChatEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
@@ -22,8 +25,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.coroutines.resume
@@ -32,64 +33,6 @@ import kotlin.coroutines.suspendCoroutine
 internal data class Response(
 	val responseJson: String
 )
-
-@Serializable
-data class SubscribeRequest(
-	val type: String,
-	val nonce: Int,
-	val chatId: String,
-)
-
-@Serializable
-data class SendMessageRequest(
-	val type: String,
-	val message: Message
-) {
-	@Serializable
-	data class Message(
-		val chatId: String,
-		val content: String,
-		val contentIv: String,
-		val nonce: Int,
-		val signature: String,
-	)
-}
-
-@Serializable
-internal sealed interface RawChatEvent {
-	val type: String
-
-	@Serializable
-	@SerialName("new")
-	data class New(
-		override val type: String,
-		val message: Message
-	) : RawChatEvent {
-		@Serializable
-		data class Message(
-			val nonce: Int,
-			val chatId: String,
-			val signature: String,
-			val content: String,
-			val contentIV: String
-		)
-	}
-
-	@Serializable
-	@SerialName("wait")
-	data class WaitEvent(
-		val chatId: String
-	) : RawChatEvent {
-		override val type: String = "wait"
-	}
-}
-
-@Serializable
-internal data class EventWrapper(
-	val type: String,
-	val event: RawChatEvent,
-)
-
 
 fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMessagingApi {
 	val client = HttpClient(OkHttp) {
@@ -119,7 +62,7 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 				) {
 					logger.d(
 						tag = "SeedMessagingApi",
-						message = "Created wss connection"
+						message = "init: Created wss connection"
 					)
 
 					websocketSession.complete(this)
@@ -139,7 +82,7 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 						logger.d(
 							tag = "SeedMessagingApi",
 							message = """
-								Received: ${(received as? Frame.Text)?.readText() ?: "Unknown received"}
+								init: Received: ${(received as? Frame.Text)?.readText() ?: "Unknown received"}
 								${(received as? Frame.Text)?.readText()}
 							""".trimIndent()
 						)
@@ -148,10 +91,6 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 							val decodedEvent = Json.decodeFromString<EventWrapper>(
 								(received as? Frame.Text)?.readText() ?: ""
 							)
-							logger.d(
-								tag = "SeedMessagingApi",
-								message = "PARSED: $decodedEvent"
-							)
 
 							_chatEvents.emit(
 								rawChatEventToChatEvent(decodedEvent.event)
@@ -159,7 +98,7 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 						} catch (ex: Exception) {
 							logger.e(
 								tag = "SeedMessagingApi",
-								message = "NOT PARSED: ${ex.message}"
+								message = "init: Parsing error: ${ex.message}"
 							)
 						}
 					}
@@ -212,16 +151,16 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 				session.send(jsonRequest)
 
 				logger.d(
-					tag = "SeedMessagingApi getHistory",
-					message = "Sent json: $jsonRequest"
+					tag = "SeedMessagingApi",
+					message = "getHistory: Sent json: $jsonRequest"
 				)
 			}
 
 			return@withContext suspendCoroutine { continuation ->
 				responseQueue.add { response ->
 					logger.d(
-						tag = "SeedMessagingApi sendMessage",
-						message = "Response: ${response.responseJson}",
+						tag = "SeedMessagingApi",
+						message = "sendMessage: Response: ${response.responseJson}",
 					)
 
 					continuation.resume(ApiResponse.Success(Unit))
@@ -243,15 +182,15 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 				session.send(jsonRequest)
 
 				logger.d(
-					tag = "SeedMessagingApi subscribeToChat",
-					message = "Sent $jsonRequest"
+					tag = "SeedMessagingApi",
+					message = "subscribeToChat: Sent $jsonRequest"
 				)
 
 				return@withContext suspendCoroutine { continuation ->
 					responseQueue.add { response ->
 						logger.d(
-							tag = "SeedMessagingApi subscribeToChat",
-							message = "Response: ${response.responseJson}"
+							tag = "SeedMessagingApi",
+							message = "subscribeToChat: Got response: ${response.responseJson}"
 						)
 
 						continuation.resume(ApiResponse.Success(Unit))

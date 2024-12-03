@@ -49,7 +49,8 @@ fun ChatRoute(
 							)
 						}
 					}
-				}
+				},
+				onFailure = {}
 			)
 		},
 		onInputValueUpdate = vm::updateInputValue,

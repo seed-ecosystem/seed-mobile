@@ -24,7 +24,6 @@ class ChatsRepositoryImpl(
 	}
 
 	override suspend fun add(key: String, keyNonce: Int, name: String) = withContext(Dispatchers.IO) {
-		// TODO: this is a temp logic that should be fixed
 		val chatIdEncodeResult =
 			seedCoder.encode(
 				options = EncodeOptions(
@@ -32,7 +31,7 @@ class ChatsRepositoryImpl(
 					key = key
 				)
 			)
-		val tempChatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c="
+		val tempChatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=" // TODO
 
 		if (chatIdEncodeResult == null) return@withContext
 

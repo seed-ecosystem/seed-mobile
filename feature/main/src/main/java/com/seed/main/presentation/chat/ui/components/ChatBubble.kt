@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -45,7 +44,7 @@ fun ChatBubble(
 	Column(
 		modifier = modifier
 			.widthIn(50.dp, 300.dp)
-			.height(IntrinsicSize.Max)
+//			.height(IntrinsicSize.Max) // todo
 	) {
 		Row {
 			if (message.authorType == AuthorType.Others) {
