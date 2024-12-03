@@ -45,7 +45,6 @@ fun ChatBubble(
 	Column(
 		modifier = modifier
 			.widthIn(50.dp, 300.dp)
-			.width(IntrinsicSize.Max)
 			.height(IntrinsicSize.Max)
 	) {
 		Row {

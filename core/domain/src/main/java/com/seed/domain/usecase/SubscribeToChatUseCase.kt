@@ -4,41 +4,88 @@ import com.seed.domain.Logger
 import com.seed.domain.crypto.DecodeOptions
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
+import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.MessageContent
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlin.random.Random
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.EmptyCoroutineContext
 
-class SubscribeToChatUseCase( // TODO: that's all is temp and should be refactored
+sealed interface DecodedChatEvent {
+	data class New(
+		val message: MessageContent.RegularMessage,
+	) : DecodedChatEvent
+
+	data class Unknown(
+		val nonce: Int
+	) : DecodedChatEvent
+
+	data object Wait : DecodedChatEvent
+}
+
+class SubscribeToChatUseCase(
 	private val chatRepository: ChatRepository,
-	private val seedCoder: SeedCoder,
+	private val coder: SeedCoder,
 	private val logger: Logger,
+	private val getMessageKeyUseCase: GetMessageKeyUseCase,
 ) {
-	suspend operator fun invoke(chatId: String): Flow<MessageContent> = chatRepository
-		.getData(chatId)
-		.map { update ->
-			val chatKeyResult = chatRepository.getLastChatKey(chatId)
+	private val chatId = CompletableDeferred<String>()
 
-			if (chatKeyResult == null) {
-				logger.e(tag = "SubscribeToChatUseCase", "chatKey is null")
-				return@map MessageContent.UnknownMessage
-			}
+	val chatUpdatesSharedFlow = chatRepository
+		.chatUpdatesSharedFlow
+		.map { event ->
+			logger.d(tag = "SubscribeToChatUseCase", message = "event = $event")
+			return@map if (event is ChatEvent.New) {
+				logger.d(tag = "SubscribeToChatUseCase", message = "nonce of new = ${event.nonce}")
 
-			val decodeOptions = DecodeOptions(
-				content = update.encryptedContentBase64,
-				contentIv = update.encryptedContentIv,
-				signature = "", // TODO
-				key = chatKeyResult.key
-			)
-
-			val decrypted = seedCoder.decodeChatUpdate(decodeOptions)
-
-			return@map decrypted?.let {
-				MessageContent.RegularMessage(
-					nonce = Random.nextInt(),
-					author = decrypted.title,
-					text = decrypted.text,
+				val decoded = decodeRegularMessageChatEvent(
+					chatId = chatId.await(),
+					event = event,
 				)
-			} ?: MessageContent.UnknownMessage
+
+				logger.d(tag = "SubscribeToChatUseCase", message = "decoded = $decoded")
+
+				return@map decoded
+			} else DecodedChatEvent.Wait
 		}
+
+	suspend operator fun invoke(chatId: String) {
+		this.chatId.complete(chatId)
+
+		chatRepository
+			.subscribeToTheChat(chatId)
+	}
+
+	private suspend fun decodeRegularMessageChatEvent(
+		chatId: String,
+		event: ChatEvent.New
+	): DecodedChatEvent {
+		val chatKeyResult = chatRepository.getChatKey(chatId, event.nonce)
+
+		val messageKey = chatKeyResult ?: getMessageKeyUseCase(
+			chatId = chatId,
+			nonce = event.nonce
+		) ?: return DecodedChatEvent.Unknown(nonce = event.nonce)
+
+		val decodeOptions = DecodeOptions(
+			content = event.encryptedContentBase64,
+			contentIv = event.encryptedContentIv,
+			signature = event.signature,
+			key = messageKey
+		)
+
+		val decodeResult = coder.decodeChatUpdate(decodeOptions)
+			?: return DecodedChatEvent.Unknown(event.nonce)
+
+		return DecodedChatEvent.New(
+			message = MessageContent.RegularMessage(
+				nonce = event.nonce,
+				author = decodeResult.title,
+				text = decodeResult.text,
+			)
+		)
+	}
 }

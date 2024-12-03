@@ -43,8 +43,9 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 	override suspend fun encodeMessage(options: MessageEncodeOptions): MessageEncodeResult? {
 		val key = deriveNextKey(options.previousKey)
 		val decryptedContent = DecryptedMessageContent(
-			options.title,
-			options.text
+//			type = "regular",
+			title = options.title,
+			text = options.text
 		)
 		val decryptedContentJson = Json.encodeToString(decryptedContent)
 

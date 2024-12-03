@@ -2,8 +2,9 @@ package com.seed.api
 
 import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
-import com.seed.domain.api.GetHistoryResponse
 import com.seed.domain.api.SeedMessagingApi
+import com.seed.domain.model.ChatEvent
+import com.seed.domain.usecase.DecodedChatEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
@@ -17,7 +18,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -29,11 +34,10 @@ internal data class Response(
 )
 
 @Serializable
-data class HistoryRequest(
+data class SubscribeRequest(
 	val type: String,
-	val nonce: Int?,
+	val nonce: Int,
 	val chatId: String,
-	val amount: Int,
 )
 
 @Serializable
@@ -50,6 +54,42 @@ data class SendMessageRequest(
 		val signature: String,
 	)
 }
+
+@Serializable
+internal sealed interface RawChatEvent {
+	val type: String
+
+	@Serializable
+	@SerialName("new")
+	data class New(
+		override val type: String,
+		val message: Message
+	) : RawChatEvent {
+		@Serializable
+		data class Message(
+			val nonce: Int,
+			val chatId: String,
+			val signature: String,
+			val content: String,
+			val contentIV: String
+		)
+	}
+
+	@Serializable
+	@SerialName("wait")
+	data class WaitEvent(
+		val chatId: String
+	) : RawChatEvent {
+		override val type: String = "wait"
+	}
+}
+
+@Serializable
+internal data class EventWrapper(
+	val type: String,
+	val event: RawChatEvent,
+)
+
 
 fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMessagingApi {
 	val client = HttpClient(OkHttp) {
@@ -87,67 +127,66 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 					while (true) {
 						val received = incoming.receive()
 
-						responseQueue[0](
-							Response(
-								(received as? Frame.Text)?.readText() ?: "Unknown received"
+						if (responseQueue.size > 0) {
+							responseQueue[0]( // TODO: here should be some check if it is 'response'
+								Response(
+									(received as? Frame.Text)?.readText() ?: "Unknown received"
+								)
 							)
-						)
-						responseQueue.removeAt(0)
+							responseQueue.removeAt(0)
+						}
 
 						logger.d(
 							tag = "SeedMessagingApi",
 							message = """
-								Received: ${(received as? Frame.Text) ?: "Unknown received"}
+								Received: ${(received as? Frame.Text)?.readText() ?: "Unknown received"}
 								${(received as? Frame.Text)?.readText()}
 							""".trimIndent()
 						)
+
+						try {
+							val decodedEvent = Json.decodeFromString<EventWrapper>(
+								(received as? Frame.Text)?.readText() ?: ""
+							)
+							logger.d(
+								tag = "SeedMessagingApi",
+								message = "PARSED: $decodedEvent"
+							)
+
+							_chatEvents.emit(
+								rawChatEventToChatEvent(decodedEvent.event)
+							)
+						} catch (ex: Exception) {
+							logger.e(
+								tag = "SeedMessagingApi",
+								message = "NOT PARSED: ${ex.message}"
+							)
+						}
 					}
 				}
 			}
 		}
 
-		override suspend fun getHistory(
-			chatId: String,
-			amount: Int,
-			nonce: Int?,
-		): ApiResponse<GetHistoryResponse> {
-			websocketSession.await().let {
-				val jsonRequest = Json.encodeToString(
-					HistoryRequest(
-						type = "history",
-						nonce = nonce,
-						chatId = chatId,
-						amount = amount,
-					)
-				)
-
-				it.send(jsonRequest)
-
-				logger.d(
-					tag = "SeedMessagingApi getHistory",
-					message = "Sent json: $jsonRequest"
+		private fun rawChatEventToChatEvent(
+			event: RawChatEvent,
+		) = when (event) {
+			is RawChatEvent.New -> {
+				ChatEvent.New(
+					messageId = event.message.chatId,
+					encryptedContentBase64 = event.message.content,
+					encryptedContentIv = event.message.contentIV,
+					nonce = event.message.nonce,
+					signature = event.message.signature,
 				)
 			}
 
-			return suspendCoroutine { continuation ->
-				responseQueue.add { response ->
-					logger.d(
-						tag = "SeedMessagingApi getHistory",
-						message = "Get response: ${response.responseJson}"
-					)
-
-					val decoded = Json.decodeFromString<GetHistoryResponse>(response.responseJson)
-
-					continuation.resume(
-						ApiResponse.Success(
-							GetHistoryResponse(
-								messages = decoded.messages
-							)
-						)
-					)
-				}
+			is RawChatEvent.WaitEvent -> {
+				ChatEvent.Wait
 			}
 		}
+
+		private val _chatEvents = MutableSharedFlow<ChatEvent>()
+		override val chatEvents: SharedFlow<ChatEvent> = _chatEvents
 
 		override suspend fun sendMessage(
 			chatId: String,
@@ -155,7 +194,7 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 			contentIv: String,
 			nonce: Int,
 			signature: String
-		): ApiResponse<Unit> {
+		): ApiResponse<Unit> = withContext(Dispatchers.IO) {
 			websocketSession.await().let { session ->
 				val jsonRequest = Json.encodeToString(
 					SendMessageRequest(
@@ -171,9 +210,14 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 				)
 
 				session.send(jsonRequest)
+
+				logger.d(
+					tag = "SeedMessagingApi getHistory",
+					message = "Sent json: $jsonRequest"
+				)
 			}
 
-			return suspendCoroutine { continuation ->
+			return@withContext suspendCoroutine { continuation ->
 				responseQueue.add { response ->
 					logger.d(
 						tag = "SeedMessagingApi sendMessage",
@@ -184,5 +228,35 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 				}
 			}
 		}
+
+		override suspend fun subscribeToChat(chatId: String, nonce: Int): ApiResponse<Unit> =
+			withContext(Dispatchers.IO) {
+				val subscribeRequest = SubscribeRequest(
+					type = "subscribe",
+					chatId = chatId,
+					nonce = nonce
+				)
+				val jsonRequest = Json.encodeToString(subscribeRequest)
+
+				val session = websocketSession.await()
+
+				session.send(jsonRequest)
+
+				logger.d(
+					tag = "SeedMessagingApi subscribeToChat",
+					message = "Sent $jsonRequest"
+				)
+
+				return@withContext suspendCoroutine { continuation ->
+					responseQueue.add { response ->
+						logger.d(
+							tag = "SeedMessagingApi subscribeToChat",
+							message = "Response: ${response.responseJson}"
+						)
+
+						continuation.resume(ApiResponse.Success(Unit))
+					}
+				}
+			}
 	}
 }

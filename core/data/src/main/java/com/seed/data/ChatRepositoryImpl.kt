@@ -24,24 +24,20 @@ class ChatRepositoryImpl(
 	private val messagingApi: SeedMessagingApi,
 	private val logger: Logger,
 ) : ChatRepository {
-	private val chatUpdatesSharedFlow = MutableSharedFlow<ChatUpdate>()
+	override val chatUpdatesSharedFlow = messagingApi.chatEvents
 	private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
 
-	init {
-		coroutineScope.launch {
-			while (true) {
-				generateRandomMessage()
+	override suspend fun subscribeToTheChat(chatId: String) {
+		val subscriptionResult = messagingApi
+			.subscribeToChat(chatId = chatId, nonce = 0)
 
-				delay(5000)
-			}
-		}
+		logger.d(
+			tag = "ChatRepositoryImpl subscribeToTheChat",
+			message = "Subscribe success, API result: $subscriptionResult"
+		)
 	}
 
-	override suspend fun getData(chatId: String): Flow<ChatUpdate> {
-		return chatUpdatesSharedFlow
-	}
-
-	override suspend fun sendMessage(sendMessageDto: SendMessageDto) {
+	override suspend fun sendMessage(sendMessageDto: SendMessageDto) = withContext(Dispatchers.IO) {
 		logger.d(
 			tag = "ChatRepository",
 			message = "Sending message $sendMessageDto"
@@ -63,28 +59,20 @@ class ChatRepositoryImpl(
 		}
 	}
 
-	override suspend fun getChatKey(chatId: String, nonce: Int): String? = withContext(Dispatchers.IO) {
-		val chatKey = chatKeyDao.getByNonce(chatId, nonce)
+	override suspend fun getChatKey(chatId: String, nonce: Int): String? =
+		withContext(Dispatchers.IO) {
+			val chatKey = chatKeyDao.getByNonce(chatId, nonce)
 
-		return@withContext chatKey?.key
-	}
+			return@withContext chatKey?.key
+		}
 
-	override suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult? {
-		val chatKeyDbo = chatKeyDao.getLatest(chatId) ?: return null
+	override suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult? =
+		withContext(Dispatchers.IO) {
+			val chatKeyDbo = chatKeyDao.getLatest(chatId) ?: return@withContext null
 
-		return GetLastChatKeyResult(
-			key = chatKeyDbo.key,
-			keyNonce = chatKeyDbo.nonce
-		)
-	}
-
-	private suspend fun generateRandomMessage() {
-		chatUpdatesSharedFlow.emit(
-			ChatUpdate(
-				messageId = "",
-				encryptedContentBase64 = "",
-				encryptedContentIv = ""
+			return@withContext GetLastChatKeyResult(
+				key = chatKeyDbo.key,
+				keyNonce = chatKeyDbo.nonce
 			)
-		)
-	}
+		}
 }

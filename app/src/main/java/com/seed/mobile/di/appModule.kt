@@ -10,7 +10,6 @@ import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.usecase.AddChatUseCase
-import com.seed.domain.usecase.GetChatHistoryUseCase
 import com.seed.domain.usecase.GetMessageKeyUseCase
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
@@ -18,11 +17,10 @@ import com.seed.mobile.LoggerImpl
 import org.koin.dsl.module
 
 val appModule = module {
-	factory<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get()) }
+	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get()) }
 
-	factory { SubscribeToChatUseCase(get(), get(), get()) }
+	single { SubscribeToChatUseCase(get(), get(), get(), get()) }
 	factory { SendMessageUseCase(get(), get(), get(), get()) }
-	factory { GetChatHistoryUseCase(get(), get(), get()) }
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get()) }
 

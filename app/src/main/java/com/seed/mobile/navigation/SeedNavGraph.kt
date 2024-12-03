@@ -15,7 +15,7 @@ interface NavDestination {
 	data object BottomBarDestinations : BottomBarDestination
 
 	@Serializable
-	data class ChatDestination(val chatName: String = "") : NavDestination
+	data class ChatDestination(val chatId: String = "", val chatName: String = "") : NavDestination
 
 	@Serializable
 	data object ChatImportDestination : NavDestination

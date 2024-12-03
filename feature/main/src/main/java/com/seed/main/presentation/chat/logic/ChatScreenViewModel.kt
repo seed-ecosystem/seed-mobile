@@ -1,11 +1,10 @@
 package com.seed.main.presentation.chat.logic
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
 import com.seed.domain.model.MessageContent
-import com.seed.domain.usecase.GetChatHistoryUseCase
+import com.seed.domain.usecase.DecodedChatEvent
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import kotlin.random.Random
 
 private data class ChatScreenVmState(
 	val messages: List<Message>? = null,
@@ -54,7 +52,6 @@ private data class ChatScreenVmState(
 class ChatScreenViewModel(
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
-	private val getChatHistoryUseCase: GetChatHistoryUseCase,
 	private val logger: Logger,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
@@ -67,10 +64,11 @@ class ChatScreenViewModel(
 			ChatScreenUiState.Loading("", "")
 		)
 
-	fun setInitialData(chatName: String) {
+	fun setInitialData(chatName: String, chatId: String) {
 		_state.update {
 			it.copy(
 				chatName = chatName,
+				chatId = chatId
 			)
 		}
 	}
@@ -83,69 +81,58 @@ class ChatScreenViewModel(
 				)
 			}
 
-			val result = getChatHistoryUseCase()
-
-			logger.d(
-				tag = "ChatScreenViewModel loadData",
-				message = "getChatHistoryUseCase result: $result"
-			)
-
-			if (result != null) {
-				_state.update {
-					it.copy(
-						messages = result
-							.mapNotNull { messageContent ->
-								if (messageContent is MessageContent.RegularMessage) {
-									return@mapNotNull messageContent.toMessage()
-								} else return@mapNotNull null
-							}
-					)
-				}
-			}
-
 			subscribeToChatUseCase(chatId = _state.value.chatId)
-				.catch { cause ->
-					Log.e(
-						"ChatScreenViewModel",
-						"An error occured: ${cause.localizedMessage}"
-					)
 
-					_state.update {
-						it.copy(
-							isLoading = false,
-							isError = true
-						)
-					}
-				}
-				.collect { newMessageContent ->
-					val newMessage: Message? = when (newMessageContent) {
-						is MessageContent.RegularMessage -> {
-							Message(
-								nonce = newMessageContent.nonce,
-								authorType = AuthorType.Others, // todo
-								authorName = newMessageContent.author,
-								messageText = newMessageContent.text,
-								dateTime = LocalDateTime.now() // todo
-							)
+			subscribeToChatUseCase.chatUpdatesSharedFlow
+				.catch { handleSubscriptionFlow(it) }
+				.collect { event ->
+					val newMessage: Message? = when (event) {
+						is DecodedChatEvent.New -> {
+							event.message.toMessage()
 						}
 
-						is MessageContent.UnknownMessage -> {
+						is DecodedChatEvent.Wait -> {
+							_state.update {
+								it.copy(
+									isLoading = false
+								)
+							}
 							null
 						}
+
+						else -> null
 					}
 
-					val newMessagesList = _state.value.messages?.let { oldMessages ->
-						oldMessages + newMessage
-					} ?: listOf(newMessage)
-
-					_state.update {
-						it.copy(
-							isLoading = false,
-							isError = false,
-							messages = newMessagesList.mapNotNull { it }
-						)
-					}
+					updateMessagesWithNewMessage(newMessage)
 				}
+		}
+	}
+
+	private fun updateMessagesWithNewMessage(newMessage: Message?) {
+		val newMessageList = _state.value.messages?.let { oldMessages ->
+			oldMessages + listOf(newMessage)
+		} ?: listOf(newMessage)
+
+		_state.update {
+			it.copy(
+				isLoading = false,
+				isError = false,
+				messages = newMessageList.mapNotNull { it }
+			)
+		}
+	}
+
+	private fun handleSubscriptionFlow(cause: Throwable) {
+		logger.e(
+			"ChatScreenViewModel",
+			"An error occured: ${cause.localizedMessage}"
+		)
+
+		_state.update {
+			it.copy(
+				isLoading = false,
+				isError = true
+			)
 		}
 	}
 
@@ -165,7 +152,7 @@ class ChatScreenViewModel(
 				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",//_state.value.chatId,
 				messageAuthor = "Author", // todo
 				messageText = _state.value.inputFieldValue,
-				lastMessageNonce = _state.value.messages?.first()?.nonce ?: return@launch,
+				lastMessageNonce = _state.value.messages?.last()?.nonce ?: return@launch,
 			)
 
 			_state.update {

@@ -1,6 +1,7 @@
 package com.seed.domain.data
 
-import kotlinx.coroutines.flow.Flow
+import com.seed.domain.model.ChatEvent
+import kotlinx.coroutines.flow.SharedFlow
 
 data class SendMessageDto(
 	val chatId: String,
@@ -22,7 +23,9 @@ data class GetLastChatKeyResult(
 )
 
 interface ChatRepository {
-	suspend fun getData(chatId: String): Flow<ChatUpdate>
+	val chatUpdatesSharedFlow: SharedFlow<ChatEvent>
+
+	suspend fun subscribeToTheChat(chatId: String)
 
 	suspend fun sendMessage(sendMessageDto: SendMessageDto)
 

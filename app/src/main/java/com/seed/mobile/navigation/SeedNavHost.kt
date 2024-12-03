@@ -34,7 +34,7 @@ fun SeedNavHost(
 			composable<NavDestination.ChatListDestination> {
 				ChatListRoute(
 					goToChatImport = { navHostController.navigate(NavDestination.ChatImportDestination) },
-					goToChat = { navHostController.navigate(NavDestination.ChatDestination(chatName = it.chatName)) },
+					goToChat = { navHostController.navigate(NavDestination.ChatDestination(chatId = it.chatId, chatName = it.chatName)) },
 					vm = koinViewModel(),
 					modifier = commonModifier
 				)
@@ -50,8 +50,8 @@ fun SeedNavHost(
 
 			ChatRoute(
 				initialData = ChatScreenInitialData(
-					chatId = 0L,
-					chatName = destination.chatName
+					chatId = destination.chatId,
+					chatName = destination.chatName,
 				),
 				onBackClick = {
 					navHostController.popBackStack()

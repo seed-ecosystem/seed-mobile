@@ -13,7 +13,7 @@ import com.seed.main.presentation.chat.ui.ChatScreen
 import kotlinx.coroutines.launch
 
 data class ChatScreenInitialData(
-	val chatId: Long,
+	val chatId: String,
 	val chatName: String,
 )
 
@@ -30,7 +30,8 @@ fun ChatRoute(
 
 	LaunchedEffect(Unit) {
 		vm.setInitialData(
-			chatName = initialData.chatName
+			chatName = initialData.chatName,
+			chatId = initialData.chatId,
 		)
 
 		vm.loadData()
