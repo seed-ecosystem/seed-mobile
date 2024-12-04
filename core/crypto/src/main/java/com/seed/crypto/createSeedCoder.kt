@@ -41,6 +41,17 @@ fun createSeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 				}
 			}
 
+			val verify = hmacHelper.verifyHmacSha256(
+				data = "SIGNATURE:" + decodeResult.getOrNull(),
+				base64Key = options.key,
+				base64Signature = options.signature
+			)
+
+			if (!verify) {
+				logger.e(tag = "SeedCoder", message = "HMAC verification failed")
+				return@withContext null
+			}
+
 			return@withContext decryptedMessageContent?.let {
 				ChatUpdateDecodeResult(
 					title = it.title,
@@ -91,7 +102,7 @@ fun createSeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		}
 
 		val verify = hmacHelper.verifyHmacSha256(
-			data = "SIGNATURE" + decryptedResult.getOrNull(),
+			data = "SIGNATURE:" + decryptedResult.getOrNull(),
 			base64Key = options.key,
 			base64Signature = options.signature
 		)
@@ -106,7 +117,7 @@ fun createSeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 
 	override suspend fun encode(options: EncodeOptions): EncodeResult? {
 		val signature = hmacHelper.hmacSha256(
-			data = "SIGNATURE",
+			data = "SIGNATURE:" + options.content,
 			base64Key = options.key,
 		)
 
