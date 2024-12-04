@@ -21,6 +21,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -79,13 +80,13 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 							responseQueue.removeAt(0)
 						}
 
-						logger.d(
-							tag = "SeedMessagingApi",
-							message = """
-								init: Received: ${(received as? Frame.Text)?.readText() ?: "Unknown received"}
-								${(received as? Frame.Text)?.readText()}
-							""".trimIndent()
-						)
+//						logger.d(
+//							tag = "SeedMessagingApi",
+//							message = """
+//								init: Received: ${(received as? Frame.Text)?.readText() ?: "Unknown received"}
+//								${(received as? Frame.Text)?.readText()}
+//							""".trimIndent()
+//						)
 
 						try {
 							val decodedEvent = Json.decodeFromString<EventWrapper>(

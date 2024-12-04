@@ -4,6 +4,7 @@ import com.seed.crypto.helpers.AesDecodingHelper
 import com.seed.crypto.helpers.AesEncodingHelper
 import com.seed.crypto.helpers.HmacHelper
 import com.seed.crypto.serial.DecryptedMessageContent
+import com.seed.domain.Logger
 import com.seed.domain.crypto.ChatUpdateDecodeResult
 import com.seed.domain.crypto.DecodeOptions
 import com.seed.domain.crypto.EncodeOptions
@@ -11,39 +12,51 @@ import com.seed.domain.crypto.EncodeResult
 import com.seed.domain.crypto.MessageEncodeOptions
 import com.seed.domain.crypto.MessageEncodeResult
 import com.seed.domain.crypto.SeedCoder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.lang.Exception
 
-fun createSeedCoder(): SeedCoder = object : SeedCoder {
+fun createSeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 	val hmacHelper = HmacHelper()
 	val decodingHelper = AesDecodingHelper()
 	val encodingHelper = AesEncodingHelper()
 
 	val json = Json { ignoreUnknownKeys = true }
 
-	override suspend fun decodeChatUpdate(options: DecodeOptions): ChatUpdateDecodeResult? {
-		val decodeResult = decodingHelper.decode(
-			encryptedBase64 = options.content,
-			base64Iv = options.contentIv,
-			base64Key = options.key
-		)
-
-		val decryptedMessageContent = decodeResult.getOrNull()?.let {
-			json.decodeFromString<DecryptedMessageContent>(it)
-		}
-
-		return decryptedMessageContent?.let {
-			ChatUpdateDecodeResult(
-				title = it.title,
-				text = it.text
+	override suspend fun decodeChatUpdate(options: DecodeOptions): ChatUpdateDecodeResult? = withContext(Dispatchers.Default) {
+		try {
+			val decodeResult = decodingHelper.decode(
+				encryptedBase64 = options.content,
+				base64Iv = options.contentIv,
+				base64Key = options.key
 			)
+
+			val decryptedMessageContent = decodeResult.getOrNull()?.let {
+				try {
+					json.decodeFromString<DecryptedMessageContent>(it)
+				} catch (ex: Exception) {
+					null
+				}
+			}
+
+			return@withContext decryptedMessageContent?.let {
+				ChatUpdateDecodeResult(
+					title = it.title,
+					text = it.text
+				)
+			}
+		} catch (ex: Exception) {
+			logger.e(tag = "SeedCoder", message = "${ex.message}")
+			return@withContext  null
 		}
 	}
 
-	override suspend fun encodeMessage(options: MessageEncodeOptions): MessageEncodeResult? {
+	override suspend fun encodeMessage(options: MessageEncodeOptions): MessageEncodeResult? = withContext(Dispatchers.Default) {
 		val key = deriveNextKey(options.previousKey)
 		val decryptedContent = DecryptedMessageContent(
-//			type = "regular",
+			type = "regular",
 			title = options.title,
 			text = options.text
 		)
@@ -56,7 +69,7 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 
 		val encodeResult = encode(encodeOptions)
 
-		return encodeResult?.let {
+		return@withContext encodeResult?.let {
 			MessageEncodeResult(
 				key = key,
 				signature = it.signature,
@@ -66,24 +79,29 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 		}
 	}
 
-	override suspend fun decode(options: DecodeOptions): String? {
-		val verify = hmacHelper.verifyHmacSha256(
-			data = "SIGNATURE",
-			base64Key = options.key,
-			base64Signature = options.signature
-		)
-
-		if (!verify) {
-			return null
-		}
-
+	override suspend fun decode(options: DecodeOptions): String? = withContext(Dispatchers.Default) {
 		val decryptedResult = decodingHelper.decode(
 			encryptedBase64 = options.content,
 			base64Iv = options.contentIv,
 			base64Key = options.key
 		)
 
-		return decryptedResult.getOrNull()
+		if (decryptedResult.isFailure) {
+			return@withContext null
+		}
+
+		val verify = hmacHelper.verifyHmacSha256(
+			data = "SIGNATURE" + decryptedResult.getOrNull(),
+			base64Key = options.key,
+			base64Signature = options.signature
+		)
+
+		if (!verify) {
+			logger.e(tag = "SeedCoder", message = "HMAC verification failed")
+			return@withContext null
+		}
+
+		return@withContext decryptedResult.getOrNull()
 	}
 
 	override suspend fun encode(options: EncodeOptions): EncodeResult? {
@@ -106,8 +124,8 @@ fun createSeedCoder(): SeedCoder = object : SeedCoder {
 		}
 	}
 
-	override suspend fun deriveNextKey(key: String): String {
-		return hmacHelper.hmacSha256(
+	override suspend fun deriveNextKey(key: String): String = withContext(Dispatchers.Default) {
+		return@withContext hmacHelper.hmacSha256(
 			data = "NEXT-KEY",
 			base64Key = key
 		)

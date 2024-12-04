@@ -13,8 +13,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.random.Random
 
 sealed interface DecodedChatEvent {
+	data class Stored(
+		val messages: List<MessageContent>,
+	) : DecodedChatEvent
+
 	data class New(
 		val message: MessageContent.RegularMessage,
 	) : DecodedChatEvent
@@ -32,40 +37,33 @@ class SubscribeToChatUseCase(
 	private val logger: Logger,
 	private val getMessageKeyUseCase: GetMessageKeyUseCase,
 ) {
-	private val chatId = CompletableDeferred<String>()
-
-	val chatUpdatesSharedFlow = chatRepository
-		.chatUpdatesSharedFlow
-		.map { event ->
-			logger.d(tag = "SubscribeToChatUseCase", message = "event = $event")
-			return@map if (event is ChatEvent.New) {
-				logger.d(tag = "SubscribeToChatUseCase", message = "nonce of new = ${event.nonce}")
-
-				val decoded = decodeRegularMessageChatEvent(
-					chatId = chatId.await(),
-					event = event,
-				)
-
-				logger.d(tag = "SubscribeToChatUseCase", message = "decoded = $decoded")
-
-				return@map decoded
-			} else DecodedChatEvent.Wait
-		}
-
-	suspend operator fun invoke(chatId: String) {
-		this.chatId.complete(chatId)
-
+	suspend operator fun invoke(chatId: String): Flow<DecodedChatEvent> {
 		chatRepository
 			.subscribeToTheChat(chatId)
+
+		return chatRepository
+			.chatUpdatesSharedFlow
+			.map { event ->
+				logger.d(tag = "SubscribeToChatUseCase", message = "Got event: $event")
+
+				return@map if (event is ChatEvent.New) {
+					val decoded = decodeRegularMessageChatEvent(
+						chatId = chatId,
+						event = event,
+					)
+
+					logger.d(tag = "SubscribeToChatUseCase", message = "Decoded: $decoded")
+
+					return@map decoded
+				} else DecodedChatEvent.Wait
+			}
 	}
 
 	private suspend fun decodeRegularMessageChatEvent(
 		chatId: String,
 		event: ChatEvent.New
 	): DecodedChatEvent {
-		val chatKeyResult = chatRepository.getChatKey(chatId, event.nonce)
-
-		val messageKey = chatKeyResult ?: getMessageKeyUseCase(
+		val messageKey = getMessageKeyUseCase(
 			chatId = chatId,
 			nonce = event.nonce
 		) ?: return DecodedChatEvent.Unknown(nonce = event.nonce)

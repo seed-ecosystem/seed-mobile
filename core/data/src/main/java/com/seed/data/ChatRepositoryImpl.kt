@@ -4,29 +4,39 @@ import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.data.ChatRepository
-import com.seed.domain.data.ChatUpdate
 import com.seed.domain.data.GetLastChatKeyResult
+import com.seed.domain.data.GetOldestChatKeyResult
 import com.seed.domain.data.SendMessageDto
+import com.seed.domain.model.ChatEvent
+import com.seed.domain.model.MessageContent
+import com.seed.domain.usecase.DecodedChatEvent
 import com.seed.persistence.dao.ChatDao
 import com.seed.persistence.dao.ChatKeyDao
+import com.seed.persistence.dao.MessageDao
 import com.seed.persistence.dbo.ChatKeyDbo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.EmptyCoroutineContext
 
 class ChatRepositoryImpl(
 	private val chatDao: ChatDao,
 	private val chatKeyDao: ChatKeyDao,
+	private val messageDao: MessageDao,
 	private val messagingApi: SeedMessagingApi,
 	private val logger: Logger,
 ) : ChatRepository {
-	override val chatUpdatesSharedFlow = messagingApi.chatEvents
 	private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
+
+	override val chatUpdatesSharedFlow = messagingApi.chatEvents
 
 	override suspend fun subscribeToTheChat(chatId: String) {
 		val subscriptionResult = messagingApi
@@ -37,6 +47,18 @@ class ChatRepositoryImpl(
 			message = "subscribeToTheChat: Subscribe success, API result: $subscriptionResult"
 		)
 	}
+
+	override suspend fun getMessages(chatId: String): Flow<MessageContent> =
+		withContext(Dispatchers.IO) {
+			messageDao.getAll()
+				.map {
+					MessageContent.RegularMessage(
+						nonce = it.nonce,
+						author = it.title,
+						text = it.text,
+					)
+				}
+		}
 
 	override suspend fun sendMessage(sendMessageDto: SendMessageDto) = withContext(Dispatchers.IO) {
 		logger.d(
@@ -72,6 +94,16 @@ class ChatRepositoryImpl(
 			val chatKeyDbo = chatKeyDao.getLatest(chatId) ?: return@withContext null
 
 			return@withContext GetLastChatKeyResult(
+				key = chatKeyDbo.key,
+				keyNonce = chatKeyDbo.nonce
+			)
+		}
+
+	override suspend fun getOldestChatKey(chatId: String): GetOldestChatKeyResult? =
+		withContext(Dispatchers.IO) {
+			val chatKeyDbo = chatKeyDao.getOldest(chatId) ?: return@withContext null
+
+			return@withContext GetOldestChatKeyResult(
 				key = chatKeyDbo.key,
 				keyNonce = chatKeyDbo.nonce
 			)

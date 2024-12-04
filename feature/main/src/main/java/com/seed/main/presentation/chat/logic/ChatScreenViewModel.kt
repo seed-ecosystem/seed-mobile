@@ -83,11 +83,27 @@ class ChatScreenViewModel(
 			}
 
 			subscribeToChatUseCase(chatId = _state.value.chatId)
-
-			subscribeToChatUseCase.chatUpdatesSharedFlow
 				.catch { handleSubscriptionFlow(it) }
 				.collect { event ->
 					val newMessage: Message? = when (event) {
+						is DecodedChatEvent.Stored -> {
+							_state.update {
+								it.copy(
+									messages = event.messages.mapNotNull { message ->
+										return@mapNotNull when (message) {
+											is MessageContent.RegularMessage -> {
+												message.toMessage()
+											}
+
+											else -> null
+										}
+									}
+								)
+							}
+
+							null
+						}
+
 						is DecodedChatEvent.New -> {
 							event.message.toMessage()
 						}
@@ -110,6 +126,10 @@ class ChatScreenViewModel(
 	}
 
 	private fun updateMessagesWithNewMessage(newMessage: Message) {
+		if (_state.value.messages?.any { newMessage.nonce == it.nonce } == true) {
+			return
+		}
+
 		val newMessageList = _state.value.messages?.let { oldMessages ->
 			oldMessages + listOf(newMessage)
 		} ?: listOf(newMessage)
@@ -159,15 +179,15 @@ class ChatScreenViewModel(
 			)
 
 			if (sendResult is SendMessageResult.Success) {
-				updateMessagesWithNewMessage(
-					newMessage = Message(
-						nonce = lastMessageNonce + 1,
-						authorType = AuthorType.Self,
-						authorName = "You",
-						messageText = _state.value.inputFieldValue,
-						dateTime = LocalDateTime.now(),
-					)
-				)
+//				updateMessagesWithNewMessage(
+//					newMessage = Message(
+//						nonce = lastMessageNonce + 1,
+//						authorType = AuthorType.Self,
+//						authorName = "You",
+//						messageText = _state.value.inputFieldValue,
+//						dateTime = LocalDateTime.now(),
+//					)
+//				)
 				onSuccess()
 			}
 
@@ -185,7 +205,7 @@ fun MessageContent.RegularMessage.toMessage(): Message {
 		nonce = this.nonce,
 		authorType = AuthorType.Others, // todo
 		authorName = this.author,
-		messageText = this.text,
+		messageText = this.text.take(100),
 		dateTime = LocalDateTime.now() // todo
 	)
 }

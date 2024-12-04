@@ -17,7 +17,7 @@ import com.seed.mobile.LoggerImpl
 import org.koin.dsl.module
 
 val appModule = module {
-	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get()) }
+	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get(), get()) }
 
 	single { SubscribeToChatUseCase(get(), get(), get(), get()) }
 	factory { SendMessageUseCase(get(), get(), get(), get()) }
@@ -25,7 +25,7 @@ val appModule = module {
 	factory { AddChatUseCase(get()) }
 
 	single<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
-	factory<SeedCoder> { createSeedCoder() }
+	factory<SeedCoder> { createSeedCoder(get()) }
 
 	single<SeedMessagingApi> {
 		createSeedMessagingApi(
