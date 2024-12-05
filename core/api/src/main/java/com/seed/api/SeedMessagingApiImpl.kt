@@ -94,7 +94,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 
 			logger.d(
 				tag = "SeedMessagingApi",
-				message = "getHistory: Sent json: $jsonRequest"
+				message = "sendMessage: Sent json: $jsonRequest"
 			)
 
 			return@withContext suspendCoroutine { continuation ->

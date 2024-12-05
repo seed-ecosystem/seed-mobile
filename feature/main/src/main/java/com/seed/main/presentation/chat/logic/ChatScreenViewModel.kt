@@ -74,7 +74,10 @@ class ChatScreenViewModel(
 		}
 	}
 
-	fun loadData() {
+	fun loadData(
+		onWaitEvent: () -> Unit,
+		onNewMessage: () -> Unit,
+	) {
 		viewModelScope.launch {
 			_state.update {
 				it.copy(
@@ -114,13 +117,19 @@ class ChatScreenViewModel(
 									isLoading = false
 								)
 							}
+
+							onWaitEvent()
+
 							null
 						}
 
 						else -> null
 					}
 
-					newMessage?.let { updateMessagesWithNewMessage(it) }
+					newMessage?.let {
+						onNewMessage()
+						updateMessagesWithNewMessage(it)
+					}
 				}
 		}
 	}

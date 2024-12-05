@@ -92,8 +92,12 @@ fun createSeedSocket(
 	}
 
 	override suspend fun send(jsonContent: String) {
-		val session = websocketSession.await()
-		session.send(Frame.Text(jsonContent))
-		logger.d(tag = "SeedSocket", message = "send: Sent JSON: $jsonContent")
+		try {
+			val session = websocketSession.await()
+			session.send(Frame.Text(jsonContent))
+			logger.d(tag = "SeedSocket", message = "send: Sent JSON: $jsonContent")
+		} catch (ex: Exception) {
+			logger.e(tag = "SeedSocket", message = "An error occured while sending messaage to the socket: ${ex.message}")
+		}
 	}
 }
