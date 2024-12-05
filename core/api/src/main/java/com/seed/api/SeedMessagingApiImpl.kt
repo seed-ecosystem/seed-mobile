@@ -1,7 +1,7 @@
 package com.seed.api
 
+import com.seed.api.models.EventContent
 import com.seed.api.models.IncomingContent
-import com.seed.api.models.RawChatEvent
 import com.seed.api.models.SendMessageRequest
 import com.seed.api.models.SubscribeRequest
 import com.seed.api.util.SeedSocket
@@ -20,6 +20,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -46,11 +48,6 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 				socket.socketConnectionEvents.collect { socketEvent ->
 					val incomingMessage = parseSocketEvent(socketEvent)
 
-					logger.d(
-						tag = "SeedMessagingApi",
-						message = "Incoming message: ${incomingMessage.toString()}",
-					)
-
 					if (incomingMessage is IncomingContent.Response) {
 						if (responseQueue.size > 0) {
 							responseQueue[0](incomingMessage)
@@ -71,6 +68,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 			return try {
 				Json.decodeFromString<IncomingContent>(socketEvent.content)
 			} catch (ex: SerializationException) {
+				logger.e("SeedMessagingApi", "parseSocketEvent: Parsing error: ${ex.message}")
 				null
 			}
 		}
@@ -144,21 +142,19 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 }
 
 private fun IncomingContent.SubscribeEvent.toChatEvent(): ChatEvent {
-	return when (this.subscribeEventContent) {
-		is IncomingContent.SubscribeEvent.EventContent.New -> {
-			val newMessage =
-				this.subscribeEventContent as IncomingContent.SubscribeEvent.EventContent.New
+	return when (this.event) {
+		is EventContent.New -> {
+			val newMessage = this.event.message
 
 			ChatEvent.New(
-				messageId = newMessage.messageId,
-				encryptedContentBase64 = newMessage.encryptedContentBase64,
-				encryptedContentIv = newMessage.encryptedContentIv,
+				encryptedContentBase64 = newMessage.content,
+				encryptedContentIv = newMessage.contentIV,
 				nonce = newMessage.nonce,
 				signature = newMessage.signature
 			)
 		}
 
-		is IncomingContent.SubscribeEvent.EventContent.Wait -> {
+		is EventContent.Wait -> {
 			ChatEvent.Wait
 		}
 	}

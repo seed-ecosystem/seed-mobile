@@ -44,15 +44,11 @@ class SubscribeToChatUseCase(
 		return chatRepository
 			.chatUpdatesSharedFlow
 			.map { event ->
-				logger.d(tag = "SubscribeToChatUseCase", message = "Got event: $event")
-
 				return@map if (event is ChatEvent.New) {
 					val decoded = decodeRegularMessageChatEvent(
 						chatId = chatId,
 						event = event,
 					)
-
-					logger.d(tag = "SubscribeToChatUseCase", message = "Decoded: $decoded")
 
 					return@map decoded
 				} else DecodedChatEvent.Wait

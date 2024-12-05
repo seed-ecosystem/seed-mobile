@@ -69,11 +69,6 @@ fun createSeedSocket(
 							val received = incoming.receive()
 
 							(received as? Frame.Text)?.readText()?.let { receivedText ->
-								logger.d(
-									tag = "SeedSocket",
-									message = "launchSocketConnection: Received text content: $receivedText"
-								)
-
 								_socketConnectionEvents.emit(
 									SocketEvent(
 										content = receivedText

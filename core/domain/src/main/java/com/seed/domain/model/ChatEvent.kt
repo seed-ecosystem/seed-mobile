@@ -6,7 +6,6 @@ sealed interface ChatEvent {
 	) : ChatEvent
 
 	data class New(
-		val messageId: String,
 		val encryptedContentBase64: String,
 		val encryptedContentIv: String,
 		val nonce: Int,
