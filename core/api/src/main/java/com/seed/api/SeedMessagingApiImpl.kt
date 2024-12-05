@@ -1,44 +1,30 @@
 package com.seed.api
 
-import com.seed.api.models.EventWrapper
+import com.seed.api.models.IncomingContent
 import com.seed.api.models.RawChatEvent
 import com.seed.api.models.SendMessageRequest
 import com.seed.api.models.SubscribeRequest
+import com.seed.api.util.SeedSocket
+import com.seed.api.util.SocketEvent
 import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.model.ChatEvent
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
-import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.wss
-import io.ktor.http.HttpMethod
-import io.ktor.websocket.Frame
-import io.ktor.websocket.readText
-import io.ktor.websocket.send
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-internal data class Response(
-	val responseJson: String
-)
-
-fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMessagingApi {
-	val client = HttpClient(OkHttp) {
-		install(WebSockets)
-	}
+fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi {
+	val responseQueue: MutableList<(IncomingContent.Response) -> Unit> = mutableListOf()
 
 	val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
 		logger.e(
@@ -49,84 +35,45 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 
 	val coroutineScope = CoroutineScope(Dispatchers.IO + coroutineExceptionHandler)
 
-	val responseQueue: MutableList<(Response) -> Unit> = mutableListOf()
-
-	val websocketSession = CompletableDeferred<DefaultClientWebSocketSession>()
-
 	return object : SeedMessagingApi {
-		init {
+		private val _chatEvents = MutableSharedFlow<ChatEvent>()
+		override val chatEvents: SharedFlow<ChatEvent> = _chatEvents
+
+		override suspend fun launchConnection() {
 			coroutineScope.launch {
-				client.wss(
-					method = HttpMethod.Get,
-					host = host,
-					path = path,
-				) {
+				socket.launchSocketConnection(coroutineScope)
+
+				socket.socketConnectionEvents.collect { socketEvent ->
+					val incomingMessage = parseSocketEvent(socketEvent)
+
 					logger.d(
 						tag = "SeedMessagingApi",
-						message = "init: Created wss connection"
+						message = "Incoming message: ${incomingMessage.toString()}",
 					)
 
-					websocketSession.complete(this)
-
-					while (true) {
-						val received = incoming.receive()
-
+					if (incomingMessage is IncomingContent.Response) {
 						if (responseQueue.size > 0) {
-							responseQueue[0]( // TODO: here should be some check if it is 'response'
-								Response(
-									(received as? Frame.Text)?.readText() ?: "Unknown received"
-								)
-							)
+							responseQueue[0](incomingMessage)
 							responseQueue.removeAt(0)
 						}
+					}
 
-//						logger.d(
-//							tag = "SeedMessagingApi",
-//							message = """
-//								init: Received: ${(received as? Frame.Text)?.readText() ?: "Unknown received"}
-//								${(received as? Frame.Text)?.readText()}
-//							""".trimIndent()
-//						)
-
-						try {
-							val decodedEvent = Json.decodeFromString<EventWrapper>(
-								(received as? Frame.Text)?.readText() ?: ""
-							)
-
-							_chatEvents.emit(
-								rawChatEventToChatEvent(decodedEvent.event)
-							)
-						} catch (ex: Exception) {
-							logger.e(
-								tag = "SeedMessagingApi",
-								message = "init: Parsing error: ${ex.message}"
-							)
-						}
+					if (incomingMessage is IncomingContent.SubscribeEvent) {
+						_chatEvents.emit(
+							incomingMessage.toChatEvent()
+						)
 					}
 				}
 			}
 		}
 
-		private fun rawChatEventToChatEvent(
-			event: RawChatEvent,
-		) = when (event) {
-			is RawChatEvent.New -> {
-				ChatEvent.New(
-					messageId = event.message.chatId,
-					encryptedContentBase64 = event.message.content,
-					encryptedContentIv = event.message.contentIV,
-					nonce = event.message.nonce,
-					signature = event.message.signature,
-				)
-			}
-
-			is RawChatEvent.WaitEvent -> {
-				ChatEvent.Wait
+		private fun parseSocketEvent(socketEvent: SocketEvent): IncomingContent? {
+			return try {
+				Json.decodeFromString<IncomingContent>(socketEvent.content)
+			} catch (ex: SerializationException) {
+				null
 			}
 		}
-
-		private val _chatEvents = MutableSharedFlow<ChatEvent>()
-		override val chatEvents: SharedFlow<ChatEvent> = _chatEvents
 
 		override suspend fun sendMessage(
 			chatId: String,
@@ -135,36 +82,32 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 			nonce: Int,
 			signature: String
 		): ApiResponse<Unit> = withContext(Dispatchers.IO) {
-			websocketSession.await().let { session ->
-				val jsonRequest = Json.encodeToString(
-					SendMessageRequest(
-						type = "send",
-						message = SendMessageRequest.Message(
-							chatId = chatId,
-							content = content,
-							contentIv = contentIv,
-							nonce = nonce,
-							signature = signature
-						)
-					)
+			val jsonRequest = Json.encodeToString(
+				SendMessageRequest.createSendMessageRequest(
+					chatId = chatId,
+					content = content,
+					contentIv = contentIv,
+					nonce = nonce,
+					signature = signature
 				)
+			)
 
-				session.send(jsonRequest)
+			socket.send(jsonRequest)
 
-				logger.d(
-					tag = "SeedMessagingApi",
-					message = "getHistory: Sent json: $jsonRequest"
-				)
-			}
+			logger.d(
+				tag = "SeedMessagingApi",
+				message = "getHistory: Sent json: $jsonRequest"
+			)
 
 			return@withContext suspendCoroutine { continuation ->
 				responseQueue.add { response ->
 					logger.d(
 						tag = "SeedMessagingApi",
-						message = "sendMessage: Response: ${response.responseJson}",
+						message = "sendMessage: Response: $response",
 					)
 
-					continuation.resume(ApiResponse.Success(Unit))
+					if (response.status) continuation.resume(ApiResponse.Success(Unit))
+					else continuation.resume(ApiResponse.Failure())
 				}
 			}
 		}
@@ -178,9 +121,7 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 				)
 				val jsonRequest = Json.encodeToString(subscribeRequest)
 
-				val session = websocketSession.await()
-
-				session.send(jsonRequest)
+				socket.send(jsonRequest)
 
 				logger.d(
 					tag = "SeedMessagingApi",
@@ -191,12 +132,34 @@ fun createSeedMessagingApi(logger: Logger, host: String, path: String): SeedMess
 					responseQueue.add { response ->
 						logger.d(
 							tag = "SeedMessagingApi",
-							message = "subscribeToChat: Got response: ${response.responseJson}"
+							message = "subscribeToChat: Got response: $response"
 						)
 
-						continuation.resume(ApiResponse.Success(Unit))
+						if (response.status) continuation.resume(ApiResponse.Success(Unit))
+						else continuation.resume(ApiResponse.Failure())
 					}
 				}
 			}
+	}
+}
+
+private fun IncomingContent.SubscribeEvent.toChatEvent(): ChatEvent {
+	return when (this.subscribeEventContent) {
+		is IncomingContent.SubscribeEvent.EventContent.New -> {
+			val newMessage =
+				this.subscribeEventContent as IncomingContent.SubscribeEvent.EventContent.New
+
+			ChatEvent.New(
+				messageId = newMessage.messageId,
+				encryptedContentBase64 = newMessage.encryptedContentBase64,
+				encryptedContentIv = newMessage.encryptedContentIv,
+				nonce = newMessage.nonce,
+				signature = newMessage.signature
+			)
+		}
+
+		is IncomingContent.SubscribeEvent.EventContent.Wait -> {
+			ChatEvent.Wait
+		}
 	}
 }

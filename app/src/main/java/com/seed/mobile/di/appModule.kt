@@ -1,6 +1,8 @@
 package com.seed.mobile.di
 
 import com.seed.api.createSeedMessagingApi
+import com.seed.api.util.SeedSocket
+import com.seed.api.util.createSeedSocket
 import com.seed.crypto.createSeedCoder
 import com.seed.data.ChatRepositoryImpl
 import com.seed.data.ChatsRepositoryImpl
@@ -27,11 +29,19 @@ val appModule = module {
 	single<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
 	factory<SeedCoder> { createSeedCoder(get()) }
 
-	single<SeedMessagingApi> {
-		createSeedMessagingApi(
+	single<SeedSocket> {
+		createSeedSocket(
 			logger = get(),
 			host = "api.meetacy.app",
 			path = "seed-go",
+			reconnectionIntervalMillis = 300L,
+		)
+	}
+
+	single<SeedMessagingApi> {
+		createSeedMessagingApi(
+			logger = get(),
+			socket = get(),
 		)
 	}
 

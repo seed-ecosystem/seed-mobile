@@ -16,6 +16,8 @@ sealed interface ApiResponse<T> {
 interface SeedMessagingApi {
 	val chatEvents: SharedFlow<ChatEvent>
 
+	suspend fun launchConnection()
+
 	suspend fun sendMessage(
 		chatId: String,
 		content: String,

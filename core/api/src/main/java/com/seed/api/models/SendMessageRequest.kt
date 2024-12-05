@@ -15,4 +15,23 @@ data class SendMessageRequest(
 		val nonce: Int,
 		val signature: String,
 	)
+
+	companion object {
+		fun createSendMessageRequest(
+			chatId: String,
+			content: String,
+			contentIv: String,
+			nonce: Int,
+			signature: String,
+		) = SendMessageRequest(
+			type = "send",
+			message = Message(
+				chatId = chatId,
+				content = content,
+				contentIv = contentIv,
+				nonce = nonce,
+				signature = signature,
+			)
+		)
+	}
 }

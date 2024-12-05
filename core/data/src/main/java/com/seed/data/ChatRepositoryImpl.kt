@@ -39,6 +39,10 @@ class ChatRepositoryImpl(
 	override val chatUpdatesSharedFlow = messagingApi.chatEvents
 
 	override suspend fun subscribeToTheChat(chatId: String) {
+		messagingApi.launchConnection()
+
+		logger.d(tag = "ChatRepository", message = "subscribed")
+
 		val subscriptionResult = messagingApi
 			.subscribeToChat(chatId = chatId, nonce = 0)
 
