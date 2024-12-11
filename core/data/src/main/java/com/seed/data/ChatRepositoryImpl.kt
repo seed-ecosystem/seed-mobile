@@ -7,9 +7,7 @@ import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.GetLastChatKeyResult
 import com.seed.domain.data.GetOldestChatKeyResult
 import com.seed.domain.data.SendMessageDto
-import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.MessageContent
-import com.seed.domain.usecase.DecodedChatEvent
 import com.seed.persistence.dao.ChatDao
 import com.seed.persistence.dao.ChatKeyDao
 import com.seed.persistence.dao.MessageDao
@@ -17,13 +15,7 @@ import com.seed.persistence.dbo.ChatKeyDbo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -34,17 +26,17 @@ class ChatRepositoryImpl(
 	private val messagingApi: SeedMessagingApi,
 	private val logger: Logger,
 ) : ChatRepository {
-	private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
-
 	override val chatUpdatesSharedFlow = messagingApi.chatEvents
 
-	override suspend fun subscribeToTheChat(chatId: String) {
-		messagingApi.launchConnection()
+	override suspend fun launchConnection(coroutineScope: CoroutineScope) {
+		messagingApi.launchConnection(coroutineScope)
+	}
 
+	override suspend fun subscribeToTheChat(coroutineScope: CoroutineScope, chatId: String, nonce: Int) {
 		logger.d(tag = "ChatRepository", message = "subscribed")
 
 		val subscriptionResult = messagingApi
-			.subscribeToChat(chatId = chatId, nonce = 0)
+			.subscribeToChat(chatId = chatId, nonce = nonce)
 
 		logger.d(
 			tag = "ChatRepository",

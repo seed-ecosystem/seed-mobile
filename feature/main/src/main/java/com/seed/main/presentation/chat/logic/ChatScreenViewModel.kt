@@ -8,7 +8,10 @@ import com.seed.domain.usecase.DecodedChatEvent
 import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -27,23 +30,23 @@ private data class ChatScreenVmState(
 	val isError: Boolean = false,
 ) {
 	fun toUiState(): ChatScreenUiState {
-		if (isLoading) return ChatScreenUiState.Loading(
-			chatName = chatName,
-			inputFieldValue = inputFieldValue
-		)
-
-		if (isError || messages == null) return ChatScreenUiState.Error(
-			chatName = chatName,
-			inputFieldValue = inputFieldValue
-		)
-
-		if (messages.isEmpty()) return ChatScreenUiState.NoMessages(
-			chatName = chatName,
-			inputFieldValue = inputFieldValue,
-		)
+//		if (isLoading) return ChatScreenUiState.Loading(
+//			chatName = chatName,
+//			inputFieldValue = inputFieldValue
+//		)
+//
+//		if (isError || messages == null) return ChatScreenUiState.Error(
+//			chatName = chatName,
+//			inputFieldValue = inputFieldValue
+//		)
+//
+//		if (messages.isEmpty()) return ChatScreenUiState.NoMessages(
+//			chatName = chatName,
+//			inputFieldValue = inputFieldValue,
+//		)
 
 		return ChatScreenUiState.HasData(
-			messages = messages,
+			messages = messages ?: emptyList(),
 			chatName = chatName,
 			inputFieldValue = inputFieldValue,
 		)
@@ -56,6 +59,9 @@ class ChatScreenViewModel(
 	private val logger: Logger,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
+
+	private val _debugEvents = MutableSharedFlow<String>()
+	val debugEvents: SharedFlow<String> = _debugEvents
 
 	val state: StateFlow<ChatScreenUiState> = _state
 		.map(ChatScreenVmState::toUiState)
@@ -85,7 +91,7 @@ class ChatScreenViewModel(
 				)
 			}
 
-			subscribeToChatUseCase(chatId = _state.value.chatId)
+			subscribeToChatUseCase(chatId = _state.value.chatId, scope = viewModelScope)
 				.catch { handleSubscriptionFlow(it) }
 				.collect { event ->
 					val newMessage: Message? = when (event) {
@@ -112,13 +118,26 @@ class ChatScreenViewModel(
 						}
 
 						is DecodedChatEvent.Wait -> {
-							_state.update {
-								it.copy(
-									isLoading = false
-								)
-							}
-
 							onWaitEvent()
+
+							_debugEvents.emit("Wait")
+
+							null
+						}
+
+						is DecodedChatEvent.Connected -> {
+							_debugEvents.emit("Connected")
+							null
+						}
+
+						is DecodedChatEvent.Disconnected -> {
+							_debugEvents.emit("Disconnected")
+
+							null
+						}
+
+						is DecodedChatEvent.Reconnection -> {
+							_debugEvents.emit("Reconnection")
 
 							null
 						}

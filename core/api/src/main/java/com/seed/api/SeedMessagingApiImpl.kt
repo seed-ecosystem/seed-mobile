@@ -9,19 +9,23 @@ import com.seed.api.util.SocketEvent
 import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
+import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.model.ChatEvent
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
+import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -31,42 +35,58 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 	val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
 		logger.e(
 			tag = "SeedMessagingApi",
-			message = throwable.message.toString()
+			message = "An unhandled error occured: ${throwable.message.toString()}"
 		)
 	}
 
-	val coroutineScope = CoroutineScope(Dispatchers.IO + coroutineExceptionHandler)
+	val coroutineContext: CoroutineContext = Dispatchers.IO + Job() + coroutineExceptionHandler
 
 	return object : SeedMessagingApi {
 		private val _chatEvents = MutableSharedFlow<ChatEvent>()
 		override val chatEvents: SharedFlow<ChatEvent> = _chatEvents
 
-		override suspend fun launchConnection() {
+		override val connectionState: StateFlow<SocketConnectionState> = socket.connectionState
+
+		override suspend fun launchConnection(coroutineScope: CoroutineScope) {
 			coroutineScope.launch {
-				socket.launchSocketConnection(coroutineScope)
+				socket.initializeSocketConnection(coroutineScope + coroutineContext)
 
 				socket.socketConnectionEvents.collect { socketEvent ->
-					val incomingMessage = parseSocketEvent(socketEvent)
+					when (socketEvent) {
+						is SocketEvent.IncomingContent -> {
+							val incomingMessage = parseSocketEvent(socketEvent)
 
-					if (incomingMessage is IncomingContent.Response) {
-						if (responseQueue.size > 0) {
-							responseQueue[0](incomingMessage)
-							responseQueue.removeAt(0)
+							if (incomingMessage is IncomingContent.Response) {
+								if (responseQueue.size > 0) {
+									responseQueue[0](incomingMessage)
+									responseQueue.removeAt(0)
+								}
+							}
+
+							if (incomingMessage is IncomingContent.SubscribeEvent) {
+								_chatEvents.emit(
+									incomingMessage.toChatEvent()
+								)
+							}
 						}
-					}
 
-					if (incomingMessage is IncomingContent.SubscribeEvent) {
-						_chatEvents.emit(
-							incomingMessage.toChatEvent()
-						)
+						is SocketEvent.Reconnection -> {
+							logger.e(tag = "RECONNNECT", "RECONNNECT")
+							_chatEvents.emit(ChatEvent.Reconnection)
+
+						}
+
+						SocketEvent.Connected -> _chatEvents.emit(ChatEvent.Connected)
+
+						SocketEvent.Disconnected -> _chatEvents.emit(ChatEvent.Disconnected)
 					}
 				}
 			}
 		}
 
-		private fun parseSocketEvent(socketEvent: SocketEvent): IncomingContent? {
+		private fun parseSocketEvent(incomingContent: SocketEvent.IncomingContent): IncomingContent? {
 			return try {
-				Json.decodeFromString<IncomingContent>(socketEvent.content)
+				Json.decodeFromString<IncomingContent>(incomingContent.content)
 			} catch (ex: SerializationException) {
 				logger.e("SeedMessagingApi", "parseSocketEvent: Parsing error: ${ex.message}")
 				null

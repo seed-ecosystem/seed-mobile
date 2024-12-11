@@ -16,5 +16,11 @@ sealed interface ChatEvent {
 		val nonce: Int,
 	) : ChatEvent
 
+	data object Reconnection : ChatEvent
+
+	data object Connected : ChatEvent
+
+	data object Disconnected : ChatEvent
+
 	data object Wait : ChatEvent
 }

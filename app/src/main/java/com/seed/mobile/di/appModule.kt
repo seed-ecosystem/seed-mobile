@@ -19,14 +19,14 @@ import com.seed.mobile.LoggerImpl
 import org.koin.dsl.module
 
 val appModule = module {
-	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get(), get()) }
-
 	single { SubscribeToChatUseCase(get(), get(), get(), get()) }
-	factory { SendMessageUseCase(get(), get(), get(), get()) }
+	single { SendMessageUseCase(get(), get(), get(), get()) }
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get()) }
 
-	single<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
+	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get(), get()) }
+	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
+
 	factory<SeedCoder> { createSeedCoder(get()) }
 
 	single<SeedSocket> {
@@ -34,7 +34,7 @@ val appModule = module {
 			logger = get(),
 			host = "api.meetacy.app",
 			path = "seed-go",
-			reconnectionIntervalMillis = 300L,
+			reconnectionIntervalMillis = 1000L,
 		)
 	}
 

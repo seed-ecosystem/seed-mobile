@@ -1,32 +1,52 @@
 package com.seed.api.util
 
 import com.seed.domain.Logger
+import com.seed.domain.api.SocketConnectionState
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.wss
-import io.ktor.http.HttpMethod
+import io.ktor.client.plugins.websocket.webSocketSession
+import io.ktor.http.URLProtocol
+import io.ktor.http.path
 import io.ktor.websocket.Frame
+import io.ktor.websocket.close
 import io.ktor.websocket.readText
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.EOFException
-import java.net.SocketException
 
-data class SocketEvent(
-	val content: String,
-)
+sealed interface SocketEvent {
+	data class IncomingContent(
+		val content: String,
+	) : SocketEvent
+
+	data object Reconnection : SocketEvent
+
+	data object Connected : SocketEvent
+
+	data object Disconnected : SocketEvent
+}
 
 interface SeedSocket {
 	val socketConnectionEvents: SharedFlow<SocketEvent>
+	val connectionState: StateFlow<SocketConnectionState>
 
 	suspend fun send(jsonContent: String)
-	fun launchSocketConnection(coroutineScope: CoroutineScope)
+
+	fun initializeSocketConnection(coroutineScope: CoroutineScope)
+
+	suspend fun disconnect()
 }
 
 fun createSeedSocket(
@@ -37,67 +57,135 @@ fun createSeedSocket(
 ) = object : SeedSocket {
 	private val client = HttpClient(OkHttp) {
 		install(WebSockets)
+		install(Logging)
 	}
 
-	val websocketSession = CompletableDeferred<DefaultClientWebSocketSession>()
+	var websocketSession: DefaultClientWebSocketSession? = null
 
 	private val _socketConnectionEvents = MutableSharedFlow<SocketEvent>()
 	override val socketConnectionEvents = _socketConnectionEvents
 
-	override fun launchSocketConnection(coroutineScope: CoroutineScope) {
+	private val _connectionState = MutableStateFlow(SocketConnectionState.DISCONNECTED)
+	override val connectionState: StateFlow<SocketConnectionState> = _connectionState
+
+	var coroutineScope: CoroutineScope? = null
+	var reconnectionJob: Job? = null
+
+	override fun initializeSocketConnection(coroutineScope: CoroutineScope) {
+		reconnectionJob?.cancel()
+		reconnectionJob = null
+		websocketSession = null
+		this.coroutineScope = coroutineScope
+
+		connect()
+	}
+
+	override suspend fun disconnect() {
+		stop()
+	}
+
+	private fun connect() {
+		coroutineScope?.launch {
+			try {
+				println("yes try block start")
+
+				websocketSession =
+					client.webSocketSession(
+						block = {
+							url.protocol = URLProtocol.WSS
+							url.host = host
+							url.path(path)
+							url.port = url.protocol.defaultPort
+						},
+					)
+
+				println("yes websocket session initialized correctly :) $websocketSession")
+
+				_socketConnectionEvents.emit(SocketEvent.Connected)
+				_connectionState.update { SocketConnectionState.CONNECTED }
+
+				websocketSession!!.incoming
+					.receiveAsFlow()
+					.filterIsInstance<Frame.Text>()
+					.filterNotNull()
+					.collect { data ->
+						logger.d(tag = "SeedSocket", message = "Received peace of data: ${data.readText()}")
+
+						val message = data.readText()
+
+						_socketConnectionEvents.emit(
+							SocketEvent.IncomingContent(
+								content = message
+							)
+						)
+					}
+			} catch (ex: Exception) {
+				_connectionState.update { SocketConnectionState.DISCONNECTED }
+
+				_socketConnectionEvents.emit(SocketEvent.Disconnected)
+
+				logger.e(
+					tag = "SeedSocket",
+					message = "connect error: ${ex.message}"
+				)
+
+				logger.e(
+					tag = "SeedSocket",
+					message = "Socket reconnection in ${reconnectionIntervalMillis}ms",
+				)
+
+				_connectionState.update { SocketConnectionState.RECONNECTING }
+
+				reconnect()
+
+				_socketConnectionEvents.emit(SocketEvent.Reconnection)
+
+			}
+		}
+	}
+
+	private suspend fun stop() {
+		logger.d(tag = "SeedSocket", "stop(): Closing websocket session…")
+
+		websocketSession?.close()
+		websocketSession = null
+
+		_connectionState.update { SocketConnectionState.DISCONNECTED }
+	}
+
+	private fun reconnect() {
+		reconnectionJob?.cancel()
+
 		logger.d(
 			tag = "SeedSocket",
-			message = "launchSocketConnection: Launching socket connection…"
+			message = "reconnect()"
 		)
 
-		coroutineScope.launch {
-			while (true) {
-				try {
-					client.wss(
-						method = HttpMethod.Get,
-						host = host,
-						path = path,
-					) {
-						websocketSession.complete(this)
-
-						logger.d(
-							tag = "SeedSocket",
-							message = "launchSocketConnection: Launched socket connection"
-						)
-
-						while (true) {
-							val received = incoming.receive()
-
-							(received as? Frame.Text)?.readText()?.let { receivedText ->
-								_socketConnectionEvents.emit(
-									SocketEvent(
-										content = receivedText
-									)
-								)
-							}
-						}
-					}
-				} catch (ex: Exception) {
-					if (ex is EOFException || ex is SocketException) {
-						logger.e(
-							tag = "SeedSocket",
-							message = "Socket reconnection in ${reconnectionIntervalMillis}ms",
-						)
-
-						delay(reconnectionIntervalMillis)
-					}
-				}
-			}
+		reconnectionJob = coroutineScope?.launch {
+			stop()
+			delay(reconnectionIntervalMillis)
+			connect()
 		}
 	}
 
 	override suspend fun send(jsonContent: String) {
 		try {
-			val session = websocketSession.await()
-			session.send(Frame.Text(jsonContent))
+			while (websocketSession == null) {
+				delay(1000)
+			}
+			websocketSession?.send(Frame.Text(jsonContent))
+			if (websocketSession == null) {
+				logger.e(
+					tag = "SeedSocket",
+					message = "Websocket session is null"
+				)
+			}
 			logger.d(tag = "SeedSocket", message = "send: Sent JSON: $jsonContent")
 		} catch (ex: Exception) {
-			logger.e(tag = "SeedSocket", message = "An error occured while sending messaage to the socket: ${ex.message}")
+			logger.e(
+				tag = "SeedSocket",
+				message = "An error occured while sending message to the socket: ${ex.message}"
+			)
 		}
 	}
 }

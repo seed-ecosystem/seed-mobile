@@ -10,7 +10,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.random.Random
@@ -29,6 +33,12 @@ sealed interface DecodedChatEvent {
 	) : DecodedChatEvent
 
 	data object Wait : DecodedChatEvent
+
+	data object Reconnection : DecodedChatEvent
+
+	data object Connected : DecodedChatEvent
+
+	data object Disconnected : DecodedChatEvent
 }
 
 class SubscribeToChatUseCase(
@@ -37,21 +47,35 @@ class SubscribeToChatUseCase(
 	private val logger: Logger,
 	private val getMessageKeyUseCase: GetMessageKeyUseCase,
 ) {
-	suspend operator fun invoke(chatId: String): Flow<DecodedChatEvent> {
+	suspend operator fun invoke(chatId: String, scope: CoroutineScope): Flow<DecodedChatEvent> {
+		chatRepository.launchConnection(scope)
+
 		chatRepository
-			.subscribeToTheChat(chatId)
+			.subscribeToTheChat(scope, chatId, nonce = 1620)
 
 		return chatRepository
 			.chatUpdatesSharedFlow
 			.map { event ->
-				return@map if (event is ChatEvent.New) {
-					val decoded = decodeRegularMessageChatEvent(
-						chatId = chatId,
-						event = event,
-					)
+				return@map when (event) {
+					is ChatEvent.New -> {
+						decodeRegularMessageChatEvent(
+							chatId = chatId,
+							event = event,
+						)
+					}
 
-					return@map decoded
-				} else DecodedChatEvent.Wait
+					is ChatEvent.Connected -> {
+						chatRepository.subscribeToTheChat(
+							coroutineScope = scope,
+							chatId = chatId,
+							nonce = 1620,
+						)
+
+						DecodedChatEvent.Connected
+					}
+
+					else -> DecodedChatEvent.Wait
+				}
 			}
 	}
 

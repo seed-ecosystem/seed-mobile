@@ -2,6 +2,7 @@ package com.seed.domain.data
 
 import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.MessageContent
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 
@@ -32,7 +33,7 @@ data class GetOldestChatKeyResult(
 interface ChatRepository {
 	val chatUpdatesSharedFlow: SharedFlow<ChatEvent>
 
-	suspend fun subscribeToTheChat(chatId: String)
+	suspend fun subscribeToTheChat(coroutineScope: CoroutineScope, chatId: String, nonce: Int)
 
 	suspend fun getMessages(chatId: String): Flow<MessageContent>
 
@@ -45,4 +46,5 @@ interface ChatRepository {
 	suspend fun getOldestChatKey(chatId: String): GetOldestChatKeyResult?
 
 	suspend fun insertChatKey(chatId: String, nonce: Int, key: String)
+	suspend fun launchConnection(coroutineScope: CoroutineScope)
 }
