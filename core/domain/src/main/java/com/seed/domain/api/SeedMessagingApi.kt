@@ -27,6 +27,8 @@ interface SeedMessagingApi {
 
 	suspend fun launchConnection(coroutineScope: CoroutineScope)
 
+	suspend fun stopConnection()
+
 	suspend fun sendMessage(
 		chatId: String,
 		content: String,

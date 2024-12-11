@@ -1,9 +1,7 @@
 package com.seed.main.presentation.chat.ui
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -12,9 +10,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.seed.domain.api.SocketConnectionState
 import com.seed.main.presentation.chat.logic.ChatScreenUiState
 import com.seed.main.presentation.chat.ui.components.ChatScreenTopBar
 import com.seed.main.presentation.chat.ui.components.MessageInputField
@@ -37,6 +35,7 @@ fun ChatScreen(
 		topBar = {
 			ChatScreenTopBar(
 				chatName = state.chatName,
+				connectionState = state.connectionState,
 				onBackClick = onBackClick,
 			)
 		},

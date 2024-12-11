@@ -3,6 +3,7 @@ package com.seed.data
 import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
+import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.GetLastChatKeyResult
 import com.seed.domain.data.GetOldestChatKeyResult
@@ -27,12 +28,21 @@ class ChatRepositoryImpl(
 	private val logger: Logger,
 ) : ChatRepository {
 	override val chatUpdatesSharedFlow = messagingApi.chatEvents
+	override val connectionState = messagingApi.connectionState
 
 	override suspend fun launchConnection(coroutineScope: CoroutineScope) {
 		messagingApi.launchConnection(coroutineScope)
 	}
 
-	override suspend fun subscribeToTheChat(coroutineScope: CoroutineScope, chatId: String, nonce: Int) {
+	override suspend fun stopConnection() {
+		messagingApi.stopConnection()
+	}
+
+	override suspend fun subscribeToTheChat(
+		coroutineScope: CoroutineScope,
+		chatId: String,
+		nonce: Int
+	) {
 		logger.d(tag = "ChatRepository", message = "subscribed")
 
 		val subscriptionResult = messagingApi

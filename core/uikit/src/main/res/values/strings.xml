@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="enter_chat_key">Enter chat key</string>
+    <string name="disconnected_top_bar_title">(disconnected)</string>
+    <string name="reconnecting_top_bar_title">(reconnecting…)</string>
 </resources>

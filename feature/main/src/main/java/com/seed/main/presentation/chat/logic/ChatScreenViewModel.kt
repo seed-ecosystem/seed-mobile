@@ -3,11 +3,16 @@ package com.seed.main.presentation.chat.logic
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
+import com.seed.domain.api.SocketConnectionState
+import com.seed.domain.data.ChatRepository
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.DecodedChatEvent
 import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +33,7 @@ private data class ChatScreenVmState(
 	val chatId: String = "",
 	val isLoading: Boolean = false,
 	val isError: Boolean = false,
+	val connectionState: SocketConnectionState = SocketConnectionState.DISCONNECTED,
 ) {
 	fun toUiState(): ChatScreenUiState {
 //		if (isLoading) return ChatScreenUiState.Loading(
@@ -49,6 +55,7 @@ private data class ChatScreenVmState(
 			messages = messages ?: emptyList(),
 			chatName = chatName,
 			inputFieldValue = inputFieldValue,
+			connectionState = connectionState,
 		)
 	}
 }
@@ -56,6 +63,7 @@ private data class ChatScreenVmState(
 class ChatScreenViewModel(
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
+	private val chatRepository: ChatRepository,
 	private val logger: Logger,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
@@ -68,7 +76,7 @@ class ChatScreenViewModel(
 		.stateIn(
 			viewModelScope,
 			SharingStarted.Eagerly,
-			ChatScreenUiState.Loading("", "")
+			ChatScreenUiState.Loading("", "", SocketConnectionState.DISCONNECTED)
 		)
 
 	fun setInitialData(chatName: String, chatId: String) {
@@ -85,6 +93,14 @@ class ChatScreenViewModel(
 		onNewMessage: () -> Unit,
 	) {
 		viewModelScope.launch {
+			chatRepository.connectionState.collect { connectionState ->
+				_state.update {
+					it.copy(connectionState = connectionState)
+				}
+			}
+		}
+
+		viewModelScope.launch {
 			_state.update {
 				it.copy(
 					isLoading = true
@@ -92,7 +108,6 @@ class ChatScreenViewModel(
 			}
 
 			subscribeToChatUseCase(chatId = _state.value.chatId, scope = viewModelScope)
-				.catch { handleSubscriptionFlow(it) }
 				.collect { event ->
 					val newMessage: Message? = when (event) {
 						is DecodedChatEvent.Stored -> {
@@ -127,6 +142,7 @@ class ChatScreenViewModel(
 
 						is DecodedChatEvent.Connected -> {
 							_debugEvents.emit("Connected")
+
 							null
 						}
 
@@ -203,7 +219,7 @@ class ChatScreenViewModel(
 				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",//_state.value.chatId,
 				messageAuthor = "Author", // todo
 				messageText = _state.value.inputFieldValue,
-				lastMessageNonce =  lastMessageNonce,
+				lastMessageNonce = lastMessageNonce,
 			)
 
 			if (sendResult is SendMessageResult.Success) {
@@ -224,6 +240,17 @@ class ChatScreenViewModel(
 			}
 
 			onFailure()
+		}
+	}
+
+	@OptIn(DelicateCoroutinesApi::class)
+	override fun onCleared() {
+		GlobalScope.launch {
+			chatRepository.stopConnection()
+
+			super.onCleared()
+
+			logger.d(tag = "ChatScreenViewModel", message = "Cleared")
 		}
 	}
 }

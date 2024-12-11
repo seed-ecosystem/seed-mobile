@@ -84,6 +84,10 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 			}
 		}
 
+		override suspend fun stopConnection() {
+			socket.disconnect()
+		}
+
 		private fun parseSocketEvent(incomingContent: SocketEvent.IncomingContent): IncomingContent? {
 			return try {
 				Json.decodeFromString<IncomingContent>(incomingContent.content)
