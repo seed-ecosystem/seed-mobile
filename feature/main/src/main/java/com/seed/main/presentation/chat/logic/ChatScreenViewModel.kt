@@ -11,15 +11,12 @@ import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -36,20 +33,23 @@ private data class ChatScreenVmState(
 	val connectionState: SocketConnectionState = SocketConnectionState.DISCONNECTED,
 ) {
 	fun toUiState(): ChatScreenUiState {
-//		if (isLoading) return ChatScreenUiState.Loading(
-//			chatName = chatName,
-//			inputFieldValue = inputFieldValue
-//		)
-//
-//		if (isError || messages == null) return ChatScreenUiState.Error(
-//			chatName = chatName,
-//			inputFieldValue = inputFieldValue
-//		)
-//
-//		if (messages.isEmpty()) return ChatScreenUiState.NoMessages(
-//			chatName = chatName,
-//			inputFieldValue = inputFieldValue,
-//		)
+		if (isLoading) return ChatScreenUiState.Loading(
+			chatName = chatName,
+			inputFieldValue = inputFieldValue,
+			connectionState = connectionState,
+		)
+
+		if (isError || messages == null) return ChatScreenUiState.Error(
+			chatName = chatName,
+			inputFieldValue = inputFieldValue,
+			connectionState = connectionState,
+		)
+
+		if (messages.isEmpty()) return ChatScreenUiState.NoMessages(
+			chatName = chatName,
+			inputFieldValue = inputFieldValue,
+			connectionState = connectionState,
+		)
 
 		return ChatScreenUiState.HasData(
 			messages = messages ?: emptyList(),
@@ -121,7 +121,8 @@ class ChatScreenViewModel(
 
 											else -> null
 										}
-									}
+									},
+									isLoading = false,
 								)
 							}
 
@@ -187,20 +188,6 @@ class ChatScreenViewModel(
 		}
 	}
 
-	private fun handleSubscriptionFlow(cause: Throwable) {
-		logger.e(
-			"ChatScreenViewModel",
-			"An error occured: ${cause.localizedMessage}"
-		)
-
-		_state.update {
-			it.copy(
-				isLoading = false,
-				isError = true
-			)
-		}
-	}
-
 	fun updateInputValue(newValue: String) {
 		_state.update {
 			it.copy(
@@ -216,22 +203,13 @@ class ChatScreenViewModel(
 			val lastMessageNonce = _state.value.messages?.last()?.nonce ?: return@launch
 
 			val sendResult = sendMessageUseCase(
-				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",//_state.value.chatId,
+				chatId = _state.value.chatId,
 				messageAuthor = "Author", // todo
 				messageText = _state.value.inputFieldValue,
 				lastMessageNonce = lastMessageNonce,
 			)
 
 			if (sendResult is SendMessageResult.Success) {
-//				updateMessagesWithNewMessage(
-//					newMessage = Message(
-//						nonce = lastMessageNonce + 1,
-//						authorType = AuthorType.Self,
-//						authorName = "You",
-//						messageText = _state.value.inputFieldValue,
-//						dateTime = LocalDateTime.now(),
-//					)
-//				)
 				onSuccess()
 			}
 
@@ -259,8 +237,8 @@ fun MessageContent.RegularMessage.toMessage(): Message {
 	return Message(
 		nonce = this.nonce,
 		authorType = AuthorType.Others, // todo
-		authorName = this.author,
-		messageText = this.text.take(100),
+		authorName = this.title,
+		messageText = this.text,
 		dateTime = LocalDateTime.now() // todo
 	)
 }

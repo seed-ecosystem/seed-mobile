@@ -5,22 +5,22 @@ import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.SendMessageDto
+import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.MessageContent
-import com.seed.persistence.dao.ChatDao
-import com.seed.persistence.dao.MessageDao
+import com.seed.persistence.dao.ChatEventDao
+import com.seed.persistence.dbo.ChatEventDbo
+import com.seed.persistence.dbo.ChatEventType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.withContext
 
 class ChatRepositoryImpl(
-	private val chatDao: ChatDao,
-	private val messageDao: MessageDao,
+	private val chatEventDao: ChatEventDao,
 	private val messagingApi: SeedMessagingApi,
 	private val logger: Logger,
 ) : ChatRepository {
-	override val chatUpdatesSharedFlow = messagingApi.chatEvents
+	override val chatUpdatesSharedFlow: SharedFlow<ChatEvent> = messagingApi.chatEvents
 	override val connectionState = messagingApi.connectionState
 
 	override suspend fun launchConnection(coroutineScope: CoroutineScope) {
@@ -47,17 +47,23 @@ class ChatRepositoryImpl(
 		)
 	}
 
-	override suspend fun getMessages(chatId: String): Flow<MessageContent> =
+	override suspend fun getMessages(chatId: String): List<MessageContent> =
 		withContext(Dispatchers.IO) {
-			messageDao.getAll()
+			chatEventDao.getAll()
 				.map {
 					MessageContent.RegularMessage(
 						nonce = it.nonce,
-						author = it.title,
+						title = it.title,
 						text = it.text,
 					)
 				}
 		}
+
+	override suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage) {
+		chatEventDao.insert(
+			message.toChatEventDbo(chatId)
+		)
+	}
 
 	override suspend fun sendMessage(sendMessageDto: SendMessageDto) = withContext(Dispatchers.IO) {
 		logger.d(
@@ -80,4 +86,14 @@ class ChatRepositoryImpl(
 			)
 		}
 	}
+}
+
+private fun MessageContent.RegularMessage.toChatEventDbo(chatId: String): ChatEventDbo {
+	return ChatEventDbo(
+		chatId = chatId,
+		nonce = this.nonce,
+		eventType = ChatEventType.NewMessage,
+		title = this.title,
+		this.text,
+	)
 }

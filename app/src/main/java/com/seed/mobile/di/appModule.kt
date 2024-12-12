@@ -26,7 +26,7 @@ val appModule = module {
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get()) }
 
-	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get()) }
+	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get()) }
 	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
 	factory<ChatKeyRepository> { ChatKeyRepositoryImpl(get()) }
 

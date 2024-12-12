@@ -12,7 +12,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.seed.domain.api.SocketConnectionState
 import com.seed.main.presentation.chat.logic.ChatScreenUiState
 import com.seed.main.presentation.chat.ui.components.ChatScreenTopBar
 import com.seed.main.presentation.chat.ui.components.MessageInputField
@@ -20,9 +19,11 @@ import com.seed.main.presentation.chat.ui.states.ErrorState
 import com.seed.main.presentation.chat.ui.states.HasDataState
 import com.seed.main.presentation.chat.ui.states.LoadingState
 import com.seed.main.presentation.chat.ui.states.NoMessagesState
+import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun ChatScreen(
+	coroutineScope: CoroutineScope,
 	onBackClick: () -> Unit,
 	onSend: () -> Unit,
 	onInputValueUpdate: (String) -> Unit,
@@ -56,6 +57,7 @@ fun ChatScreen(
 					HasDataState(
 						state = state,
 						chatBubbleListState = chatBubbleListState,
+						coroutineScope = coroutineScope,
 						modifier = commonModifier
 					)
 				}

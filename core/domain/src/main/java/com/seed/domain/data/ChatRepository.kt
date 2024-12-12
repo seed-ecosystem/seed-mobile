@@ -32,7 +32,9 @@ interface ChatRepository {
 
 	suspend fun subscribeToTheChat(coroutineScope: CoroutineScope, chatId: String, nonce: Int)
 
-	suspend fun getMessages(chatId: String): Flow<MessageContent>
+	suspend fun getMessages(chatId: String): List<MessageContent>
+
+	suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage)
 
 	suspend fun sendMessage(sendMessageDto: SendMessageDto)
 

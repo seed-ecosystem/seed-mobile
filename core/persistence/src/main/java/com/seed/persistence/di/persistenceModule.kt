@@ -4,7 +4,7 @@ import androidx.room.Room
 import com.seed.persistence.SeedDatabase
 import com.seed.persistence.dao.ChatDao
 import com.seed.persistence.dao.ChatKeyDao
-import com.seed.persistence.dao.MessageDao
+import com.seed.persistence.dao.ChatEventDao
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module
 
@@ -27,7 +27,7 @@ val persistenceModule = module {
 		database.getChatKeyDao()
 	}
 
-	factory<MessageDao> {
+	factory<ChatEventDao> {
 		val database = get<SeedDatabase>()
 		database.getMessageDao()
 	}
