@@ -4,11 +4,13 @@ import com.seed.api.createSeedMessagingApi
 import com.seed.api.util.SeedSocket
 import com.seed.api.util.createSeedSocket
 import com.seed.crypto.createSeedCoder
+import com.seed.data.ChatKeyRepositoryImpl
 import com.seed.data.ChatRepositoryImpl
 import com.seed.data.ChatsRepositoryImpl
 import com.seed.domain.Logger
 import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.crypto.SeedCoder
+import com.seed.domain.data.ChatKeyRepository
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.usecase.AddChatUseCase
@@ -24,8 +26,9 @@ val appModule = module {
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get()) }
 
-	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get(), get()) }
+	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get()) }
 	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
+	factory<ChatKeyRepository> { ChatKeyRepositoryImpl(get()) }
 
 	factory<SeedCoder> { createSeedCoder(get()) }
 

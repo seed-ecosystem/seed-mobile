@@ -16,12 +16,6 @@ data class SendMessageDto(
 	val signature: String,
 )
 
-data class ChatUpdate(
-	val messageId: String,
-	val encryptedContentBase64: String,
-	val encryptedContentIv: String,
-)
-
 data class GetLastChatKeyResult(
 	val key: String,
 	val keyNonce: Int
@@ -41,14 +35,6 @@ interface ChatRepository {
 	suspend fun getMessages(chatId: String): Flow<MessageContent>
 
 	suspend fun sendMessage(sendMessageDto: SendMessageDto)
-
-	suspend fun getChatKey(chatId: String, nonce: Int): String?
-
-	suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult?
-
-	suspend fun getOldestChatKey(chatId: String): GetOldestChatKeyResult?
-
-	suspend fun insertChatKey(chatId: String, nonce: Int, key: String)
 
 	suspend fun launchConnection(coroutineScope: CoroutineScope)
 

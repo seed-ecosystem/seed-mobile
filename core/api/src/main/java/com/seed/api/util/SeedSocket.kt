@@ -25,25 +25,12 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-
-sealed interface SocketEvent {
-	data class IncomingContent(
-		val content: String,
-	) : SocketEvent
-
-	data object Reconnection : SocketEvent
-
-	data object Connected : SocketEvent
-
-	data object Disconnected : SocketEvent
-}
 
 interface SeedSocket {
 	val socketConnectionEvents: SharedFlow<SocketEvent>
 	val connectionState: StateFlow<SocketConnectionState>
 
-	suspend fun send(jsonContent: String)
+	suspend fun send(jsonContent: String): SocketSendResult
 
 	fun initializeSocketConnection(coroutineScope: CoroutineScope)
 
@@ -88,7 +75,7 @@ fun createSeedSocket(
 	private fun connect() {
 		coroutineScope?.launch {
 			try {
-				println("yes try block start")
+				logger.d(tag = "SeedSocket", message = "Started websocket session initialization…")
 
 				websocketSession =
 					client.webSocketSession(
@@ -100,7 +87,7 @@ fun createSeedSocket(
 						},
 					)
 
-				println("yes websocket session initialized correctly :) $websocketSession")
+				logger.d(tag = "SeedSocket", message = "Websocket session initialized successfully")
 
 				_socketConnectionEvents.emit(SocketEvent.Connected)
 				_connectionState.update { SocketConnectionState.CONNECTED }
@@ -110,7 +97,7 @@ fun createSeedSocket(
 					.filterIsInstance<Frame.Text>()
 					.filterNotNull()
 					.collect { data ->
-						logger.d(tag = "SeedSocket", message = "Received peace of data: ${data.readText()}")
+						logger.d(tag = "SeedSocket", message = "Received data from websocket: ${data.readText()}")
 
 						val message = data.readText()
 
@@ -122,36 +109,34 @@ fun createSeedSocket(
 					}
 			} catch (ex: Exception) {
 				_connectionState.update { SocketConnectionState.DISCONNECTED }
-
 				_socketConnectionEvents.emit(SocketEvent.Disconnected)
 
 				logger.e(
 					tag = "SeedSocket",
-					message = "connect error: ${ex.message}"
+					message = "Socket connection error: ${ex.message}"
 				)
 
-				logger.e(
+				logger.d(
 					tag = "SeedSocket",
 					message = "Socket reconnection in ${reconnectionIntervalMillis}ms",
 				)
 
 				_connectionState.update { SocketConnectionState.RECONNECTING }
-
-				reconnect()
-
 				_socketConnectionEvents.emit(SocketEvent.Reconnection)
 
+				reconnect()
 			}
 		}
 	}
 
 	private suspend fun stop() {
-		logger.d(tag = "SeedSocket", "stop(): Closing websocket session…")
+		logger.d(tag = "SeedSocket", "Closing websocket session…")
 
 		websocketSession?.close()
 		websocketSession = null
 
 		_connectionState.update { SocketConnectionState.DISCONNECTED }
+		_socketConnectionEvents.emit(SocketEvent.Disconnected)
 	}
 
 	private fun reconnect() {
@@ -159,7 +144,7 @@ fun createSeedSocket(
 
 		logger.d(
 			tag = "SeedSocket",
-			message = "reconnect()"
+			message = "Reconnecting started"
 		)
 
 		reconnectionJob = coroutineScope?.launch {
@@ -169,24 +154,29 @@ fun createSeedSocket(
 		}
 	}
 
-	override suspend fun send(jsonContent: String) {
+	override suspend fun send(jsonContent: String): SocketSendResult {
 		try {
-			while (websocketSession == null) {
-				delay(1000)
-			}
-			websocketSession?.send(Frame.Text(jsonContent))
 			if (websocketSession == null) {
 				logger.e(
 					tag = "SeedSocket",
-					message = "Websocket session is null"
+					message = "Can't send JSON because websocket session is null"
 				)
+
+				return SocketSendResult.FAILURE
 			}
-			logger.d(tag = "SeedSocket", message = "send: Sent JSON: $jsonContent")
+
+			websocketSession?.send(Frame.Text(jsonContent))
+
+			logger.d(tag = "SeedSocket", message = "Sent JSON: $jsonContent")
+
+			return SocketSendResult.SUCCESS
 		} catch (ex: Exception) {
 			logger.e(
 				tag = "SeedSocket",
 				message = "An error occured while sending message to the socket: ${ex.message}"
 			)
+
+			return SocketSendResult.FAILURE
 		}
 	}
 }

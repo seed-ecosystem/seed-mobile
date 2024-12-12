@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.ChatRepository
+import com.seed.domain.model.DecodedChatEvent
 import com.seed.domain.model.MessageContent
-import com.seed.domain.usecase.DecodedChatEvent
 import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase

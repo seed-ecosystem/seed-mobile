@@ -5,22 +5,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
-sealed interface ApiResponse<T> {
-	data class Success<T>(
-		val data: T
-	) : ApiResponse<T>
-
-	data class Failure<T>(
-		val message: String? = null
-	) : ApiResponse<T>
-}
-
-enum class SocketConnectionState {
-	CONNECTED,
-	DISCONNECTED,
-	RECONNECTING
-}
-
 interface SeedMessagingApi {
 	val chatEvents: SharedFlow<ChatEvent>
 	val connectionState: StateFlow<SocketConnectionState>

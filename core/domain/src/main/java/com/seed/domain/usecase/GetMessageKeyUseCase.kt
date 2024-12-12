@@ -1,23 +1,23 @@
 package com.seed.domain.usecase
 
 import com.seed.domain.crypto.SeedCoder
-import com.seed.domain.data.ChatRepository
+import com.seed.domain.data.ChatKeyRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class GetMessageKeyUseCase(
 	private val coder: SeedCoder,
-	private val chatRepository: ChatRepository
+	private val chatKeyRepository: ChatKeyRepository
 ) {
 	suspend operator fun invoke(
 		chatId: String,
 		nonce: Int,
 	): String? = withContext(Dispatchers.Default) {
-		val cachedKey = chatRepository.getChatKey(chatId, nonce)
+		val cachedKey = chatKeyRepository.getChatKey(chatId, nonce)
 
 		if (cachedKey != null) return@withContext cachedKey
 
-		val getLastChatKeyResult = chatRepository.getLastChatKey(chatId = chatId)
+		val getLastChatKeyResult = chatKeyRepository.getLastChatKey(chatId = chatId)
 			?: return@withContext null
 
 		if (getLastChatKeyResult.keyNonce <= nonce) {
@@ -27,11 +27,11 @@ class GetMessageKeyUseCase(
 				nonce = nonce,
 			)
 
-			chatRepository.insertChatKey(chatId, nonce, key)
+			chatKeyRepository.insertChatKey(chatId, nonce, key)
 
 			return@withContext key
 		} else {
-			val oldestChatKey = chatRepository.getOldestChatKey(chatId) ?: return@withContext null
+			val oldestChatKey = chatKeyRepository.getOldestChatKey(chatId) ?: return@withContext null
 
 			if (oldestChatKey.keyNonce > nonce) return@withContext null
 

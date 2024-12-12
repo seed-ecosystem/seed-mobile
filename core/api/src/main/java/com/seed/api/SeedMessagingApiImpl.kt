@@ -6,6 +6,7 @@ import com.seed.api.models.SendMessageRequest
 import com.seed.api.models.SubscribeRequest
 import com.seed.api.util.SeedSocket
 import com.seed.api.util.SocketEvent
+import com.seed.api.util.SocketSendResult
 import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
@@ -71,9 +72,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 						}
 
 						is SocketEvent.Reconnection -> {
-							logger.e(tag = "RECONNNECT", "RECONNNECT")
 							_chatEvents.emit(ChatEvent.Reconnection)
-
 						}
 
 						SocketEvent.Connected -> _chatEvents.emit(ChatEvent.Connected)
@@ -114,7 +113,11 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 				)
 			)
 
-			socket.send(jsonRequest)
+			val socketSendResult = socket.send(jsonRequest)
+
+			if (socketSendResult == SocketSendResult.FAILURE) {
+				return@withContext ApiResponse.Failure()
+			}
 
 			logger.d(
 				tag = "SeedMessagingApi",
@@ -143,7 +146,11 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 				)
 				val jsonRequest = Json.encodeToString(subscribeRequest)
 
-				socket.send(jsonRequest)
+				val socketSendResult = socket.send(jsonRequest)
+
+				if (socketSendResult == SocketSendResult.FAILURE) {
+					return@withContext ApiResponse.Failure()
+				}
 
 				logger.d(
 					tag = "SeedMessagingApi",
