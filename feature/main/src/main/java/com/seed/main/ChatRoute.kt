@@ -1,11 +1,6 @@
 package com.seed.main
 
 import android.widget.Toast
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,29 +12,12 @@ import androidx.compose.ui.platform.LocalContext
 import com.seed.main.presentation.chat.logic.ChatScreenUiState
 import com.seed.main.presentation.chat.logic.ChatScreenViewModel
 import com.seed.main.presentation.chat.ui.ChatScreen
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class ChatScreenInitialData(
 	val chatId: String,
 	val chatName: String,
 )
-
-suspend fun LazyListState.animateScrollToItemWithBounce(
-	index: Int,
-	scrollOffset: Int = 0,
-	animationSpec: AnimationSpec<Float> = spring(
-		dampingRatio = Spring.DampingRatioLowBouncy,
-		stiffness = Spring.StiffnessMediumLow
-	)
-) {
-	// Combine the default animateScrollToItem with a custom spring animation
-	animateScrollToItem(
-		index = index,
-		scrollOffset = scrollOffset,
-		
-	)
-}
 
 @Composable
 fun ChatRoute(
