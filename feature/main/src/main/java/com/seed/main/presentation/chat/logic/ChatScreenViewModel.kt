@@ -52,7 +52,7 @@ private data class ChatScreenVmState(
 		)
 
 		return ChatScreenUiState.HasData(
-			messages = messages ?: emptyList(),
+			messages = messages,
 			chatName = chatName,
 			inputFieldValue = inputFieldValue,
 			connectionState = connectionState,
@@ -92,6 +92,12 @@ class ChatScreenViewModel(
 		onWaitEvent: () -> Unit,
 		onNewMessage: () -> Unit,
 	) {
+		_state.update {
+			it.copy(
+				isLoading = true
+			)
+		}
+
 		viewModelScope.launch {
 			chatRepository.connectionState.collect { connectionState ->
 				_state.update {
@@ -99,74 +105,59 @@ class ChatScreenViewModel(
 				}
 			}
 		}
-
+		
 		viewModelScope.launch {
-			_state.update {
-				it.copy(
-					isLoading = true
-				)
-			}
-
 			subscribeToChatUseCase(chatId = _state.value.chatId, scope = viewModelScope)
 				.collect { event ->
-					val newMessage: Message? = when (event) {
-						is DecodedChatEvent.Stored -> {
-							_state.update {
-								it.copy(
-									messages = event.messages.mapNotNull { message ->
-										return@mapNotNull when (message) {
-											is MessageContent.RegularMessage -> {
-												message.toMessage()
-											}
-
-											else -> null
-										}
-									},
-									isLoading = false,
-								)
-							}
-
-							null
-						}
-
-						is DecodedChatEvent.New -> {
-							event.message.toMessage()
-						}
-
-						is DecodedChatEvent.Wait -> {
-							onWaitEvent()
-
-							_debugEvents.emit("Wait")
-
-							null
-						}
-
-						is DecodedChatEvent.Connected -> {
-							_debugEvents.emit("Connected")
-
-							null
-						}
-
-						is DecodedChatEvent.Disconnected -> {
-							_debugEvents.emit("Disconnected")
-
-							null
-						}
-
-						is DecodedChatEvent.Reconnection -> {
-							_debugEvents.emit("Reconnection")
-
-							null
-						}
-
-						else -> null
-					}
-
-					newMessage?.let {
-						onNewMessage()
-						updateMessagesWithNewMessage(it)
-					}
+					handleDecodedChatEvent(event, onWaitEvent, onNewMessage)
 				}
+		}
+	}
+
+	private fun handleDecodedChatEvent(
+		event: DecodedChatEvent,
+		onWaitEvent: () -> Unit,
+		onNewMessage: () -> Unit
+	) {
+		when (event) {
+			is DecodedChatEvent.Stored -> {
+				_state.update {
+					it.copy(
+						messages = event.messages.mapNotNull { message ->
+							return@mapNotNull when (message) {
+								is MessageContent.RegularMessage -> {
+									message.toMessage()
+								}
+
+								else -> null
+							}
+						},
+					)
+				}
+			}
+
+			is DecodedChatEvent.New -> {
+				onNewMessage()
+				updateMessagesWithNewMessage(event.message.toMessage())
+			}
+
+			is DecodedChatEvent.Wait -> {
+				_state.update {
+					it.copy(
+						isLoading = false
+					)
+				}
+
+				onWaitEvent()
+			}
+
+			is DecodedChatEvent.Connected -> Unit
+
+			is DecodedChatEvent.Disconnected -> Unit
+
+			is DecodedChatEvent.Reconnection -> Unit
+
+			is DecodedChatEvent.Unknown -> Unit
 		}
 	}
 
@@ -181,8 +172,6 @@ class ChatScreenViewModel(
 
 		_state.update {
 			it.copy(
-				isLoading = false,
-				isError = false,
 				messages = newMessageList,
 			)
 		}
@@ -227,8 +216,6 @@ class ChatScreenViewModel(
 			chatRepository.stopConnection()
 
 			super.onCleared()
-
-			logger.d(tag = "ChatScreenViewModel", message = "Cleared")
 		}
 	}
 }
