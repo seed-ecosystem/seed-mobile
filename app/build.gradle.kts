@@ -3,6 +3,8 @@ plugins {
 	alias(libs.plugins.kotlin.android)
 	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.serialization)
+	alias(libs.plugins.firebase)
+	alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -52,6 +54,7 @@ dependencies {
 
 	implementation(platform(libs.androidx.compose.bom))
 	implementation(platform(libs.koin.bom))
+	implementation(platform(libs.firebase.bom))
 
 	implementation(libs.androidx.navigation)
 
@@ -63,6 +66,9 @@ dependencies {
 
 	implementation(libs.kotlinx.serialization.json)
 	implementation(project(":core:api"))
+
+	implementation(libs.firebase.analytics)
+	implementation(libs.firebase.crashlytics)
 
 	testImplementation(libs.junit)
 
