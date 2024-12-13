@@ -29,6 +29,6 @@ val persistenceModule = module {
 
 	factory<ChatEventDao> {
 		val database = get<SeedDatabase>()
-		database.getMessageDao()
+		database.getChatEventDao()
 	}
 }

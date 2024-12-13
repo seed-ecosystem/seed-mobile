@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.seed.persistence.dbo.ChatEventDbo
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChatEventDao {

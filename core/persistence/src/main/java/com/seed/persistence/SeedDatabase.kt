@@ -19,5 +19,5 @@ abstract class SeedDatabase : RoomDatabase() {
 
 	abstract fun getChatKeyDao(): ChatKeyDao
 
-	abstract fun getMessageDao(): ChatEventDao
+	abstract fun getChatEventDao(): ChatEventDao
 }
