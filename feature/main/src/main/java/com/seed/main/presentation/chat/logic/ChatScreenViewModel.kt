@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.ChatRepository
+import com.seed.domain.data.NicknameRepository
 import com.seed.domain.model.DecodedChatEvent
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.SendMessageResult
@@ -28,6 +29,7 @@ private data class ChatScreenVmState(
 	val inputFieldValue: String = "",
 	val chatName: String = "",
 	val chatId: String = "",
+	val selfNickname: String? = null,
 	val isLoading: Boolean = false,
 	val isError: Boolean = false,
 	val connectionState: SocketConnectionState = SocketConnectionState.DISCONNECTED,
@@ -64,6 +66,7 @@ class ChatScreenViewModel(
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
 	private val chatRepository: ChatRepository,
+	private val nicknameRepository: NicknameRepository,
 	private val logger: Logger,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
@@ -83,7 +86,7 @@ class ChatScreenViewModel(
 		_state.update {
 			it.copy(
 				chatName = chatName,
-				chatId = chatId
+				chatId = chatId,
 			)
 		}
 	}
@@ -92,9 +95,12 @@ class ChatScreenViewModel(
 		onWaitEvent: () -> Unit,
 		onNewMessage: () -> Unit,
 	) {
+		val selfNickname = nicknameRepository.getNickname()
+
 		_state.update {
 			it.copy(
-				isLoading = true
+				isLoading = true,
+				selfNickname = selfNickname,
 			)
 		}
 
@@ -105,7 +111,7 @@ class ChatScreenViewModel(
 				}
 			}
 		}
-		
+
 		viewModelScope.launch {
 			subscribeToChatUseCase(chatId = _state.value.chatId, scope = viewModelScope)
 				.collect { event ->
@@ -126,7 +132,7 @@ class ChatScreenViewModel(
 						messages = event.messages.mapNotNull { message ->
 							return@mapNotNull when (message) {
 								is MessageContent.RegularMessage -> {
-									message.toMessage()
+									message.toMessage(_state.value.selfNickname)
 								}
 
 								else -> null
@@ -138,7 +144,7 @@ class ChatScreenViewModel(
 
 			is DecodedChatEvent.New -> {
 				onNewMessage()
-				updateMessagesWithNewMessage(event.message.toMessage())
+				updateMessagesWithNewMessage(event.message.toMessage(_state.value.selfNickname))
 			}
 
 			is DecodedChatEvent.Wait -> {
@@ -219,10 +225,12 @@ class ChatScreenViewModel(
 	}
 }
 
-fun MessageContent.RegularMessage.toMessage(): Message {
+fun MessageContent.RegularMessage.toMessage(selfNickname: String?): Message {
+	val authorType = if (this.title == selfNickname) AuthorType.Self else AuthorType.Others
+
 	return Message(
 		nonce = this.nonce,
-		authorType = AuthorType.Others, // todo
+		authorType = authorType,
 		authorName = this.title,
 		messageText = this.text,
 		dateTime = LocalDateTime.now() // todo
