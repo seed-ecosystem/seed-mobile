@@ -11,15 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.seed.main.presentation.chat.logic.AuthorType
 import com.seed.main.presentation.chat.logic.Message
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatBubbleList(
 	state: LazyListState,
@@ -31,24 +28,27 @@ fun ChatBubbleList(
 	) {
 		LazyColumn(
 			state = state,
+			reverseLayout = true,
 			modifier = Modifier
 		) {
-			stickyHeader {
-				Row(
-					horizontalArrangement = Arrangement.Center,
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(vertical = 8.dp)
-				) {
-					Text(
-						text = "11.16",
-						color = MaterialTheme.colorScheme.secondary,
-						style = MaterialTheme.typography.labelMedium
-					)
-				}
-			}
+//			stickyHeader {
+//				Row(
+//					horizontalArrangement = Arrangement.Center,
+//					modifier = Modifier
+//						.fillMaxWidth()
+//						.padding(vertical = 8.dp)
+//				) {
+//					Text(
+//						text = "11.16",
+//						color = MaterialTheme.colorScheme.secondary,
+//						style = MaterialTheme.typography.labelMedium
+//					)
+//				}
+//			}
 
 			items(messages, key = { it.nonce }) { message ->
+				Spacer(Modifier.height(8.dp))
+
 				Row(
 					horizontalArrangement = horizontalArrangementByAuthorType(message),
 					modifier = Modifier
@@ -63,8 +63,6 @@ fun ChatBubbleList(
 						message = message
 					)
 				}
-
-				Spacer(Modifier.height(8.dp))
 			}
 		}
 	}

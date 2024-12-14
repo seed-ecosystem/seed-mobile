@@ -49,7 +49,7 @@ fun ChatRoute(
 					if (state is ChatScreenUiState.HasData) {
 						val hasDataState = state as ChatScreenUiState.HasData
 
-						chatBubbleListState.scrollToItem(index = hasDataState.messages.size)
+						chatBubbleListState.scrollToItem(index = 0)
 					}
 				}
 			},
@@ -67,9 +67,7 @@ fun ChatRoute(
 				onSuccess = {
 					if (state is ChatScreenUiState.HasData) {
 						coroutineScope.launch {
-							chatBubbleListState.scrollToItem(
-								(state as ChatScreenUiState.HasData).messages.size
-							)
+							chatBubbleListState.scrollToItem(0)
 						}
 					}
 				},

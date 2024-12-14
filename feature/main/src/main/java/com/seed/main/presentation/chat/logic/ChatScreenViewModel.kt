@@ -137,7 +137,7 @@ class ChatScreenViewModel(
 
 								else -> null
 							}
-						},
+						}.reversed(),
 					)
 				}
 			}
@@ -173,7 +173,7 @@ class ChatScreenViewModel(
 		}
 
 		val newMessageList = _state.value.messages?.let { oldMessages ->
-			oldMessages + listOf(newMessage)
+			listOf(newMessage) + oldMessages
 		} ?: listOf(newMessage)
 
 		_state.update {
@@ -195,7 +195,7 @@ class ChatScreenViewModel(
 		viewModelScope.launch {
 			if (_state.value.inputFieldValue.isBlank()) return@launch
 
-			val lastMessageNonce = _state.value.messages?.last()?.nonce ?: return@launch
+			val lastMessageNonce = _state.value.messages?.first()?.nonce ?: return@launch
 
 			val sendResult = sendMessageUseCase(
 				chatId = _state.value.chatId,
