@@ -3,8 +3,8 @@ package com.seed.data
 import com.seed.domain.data.ChatKeyRepository
 import com.seed.domain.data.GetLastChatKeyResult
 import com.seed.domain.data.GetOldestChatKeyResult
-import com.seed.persistence.dao.ChatKeyDao
-import com.seed.persistence.dbo.ChatKeyDbo
+import com.seed.persistence.db.dao.ChatKeyDao
+import com.seed.persistence.db.dbo.ChatKeyDbo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

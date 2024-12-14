@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import com.seed.main.di.mainModule
 import com.seed.mobile.di.appModule
 import com.seed.persistence.di.persistenceModule
+import com.seed.settings.di.settingsModule
 import com.seed.uikit.ui.theme.MobileTheme
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
@@ -22,7 +23,7 @@ class MainActivity : ComponentActivity() {
 			startKoin {
 				androidContext(this@MainActivity.applicationContext)
 
-				modules(mainModule, appModule, persistenceModule)
+				modules(mainModule, settingsModule, appModule, persistenceModule)
 			}
 		}
 

@@ -13,6 +13,7 @@ import com.seed.main.ChatImportRoute
 import com.seed.main.ChatListRoute
 import com.seed.main.ChatRoute
 import com.seed.main.ChatScreenInitialData
+import com.seed.settings.SettingsRoute
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -41,7 +42,10 @@ fun SeedNavHost(
 			}
 
 			composable<NavDestination.SettingsDestination> {
-				Text(text = "settings dest")
+				SettingsRoute(
+					vm = koinViewModel(),
+					modifier = commonModifier
+				)
 			}
 		}
 

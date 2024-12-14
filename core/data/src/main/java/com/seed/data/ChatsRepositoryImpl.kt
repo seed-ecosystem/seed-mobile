@@ -4,10 +4,10 @@ import com.seed.domain.crypto.EncodeOptions
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.model.Chat
-import com.seed.persistence.dao.ChatDao
-import com.seed.persistence.dao.ChatKeyDao
-import com.seed.persistence.dbo.ChatDbo
-import com.seed.persistence.dbo.ChatKeyDbo
+import com.seed.persistence.db.dao.ChatDao
+import com.seed.persistence.db.dao.ChatKeyDao
+import com.seed.persistence.db.dbo.ChatDbo
+import com.seed.persistence.db.dbo.ChatKeyDbo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

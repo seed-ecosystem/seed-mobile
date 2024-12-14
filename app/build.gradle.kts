@@ -49,8 +49,10 @@ dependencies {
 	implementation(project(":core:data"))
 	implementation(project(":core:crypto"))
 	implementation(project(":core:persistence"))
+	implementation(project(":core:api"))
 
 	implementation(project(":feature:main"))
+	implementation(project(":feature:settings"))
 
 	implementation(platform(libs.androidx.compose.bom))
 	implementation(platform(libs.koin.bom))
@@ -65,7 +67,6 @@ dependencies {
 	implementation(libs.koin.compose.viewmodel)
 
 	implementation(libs.kotlinx.serialization.json)
-	implementation(project(":core:api"))
 
 	implementation(libs.firebase.analytics)
 	implementation(libs.firebase.crashlytics)

@@ -1,9 +1,9 @@
-package com.seed.persistence.dao
+package com.seed.persistence.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import com.seed.persistence.dbo.ChatDbo
+import com.seed.persistence.db.dbo.ChatDbo
 import kotlinx.coroutines.flow.Flow
 
 @Dao

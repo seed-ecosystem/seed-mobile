@@ -22,6 +22,7 @@ ktor = "3.0.1"
 firebase-bom = "33.7.0"
 firebase-plugin = "4.4.2"
 firebase-crashlytics-plugin = "3.0.2"
+material = "1.12.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -67,6 +68,7 @@ ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "k
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

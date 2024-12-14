@@ -1,4 +1,4 @@
-package com.seed.persistence.dbo
+package com.seed.persistence.db.dbo
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

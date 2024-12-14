@@ -7,9 +7,9 @@ import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.SendMessageDto
 import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.MessageContent
-import com.seed.persistence.dao.ChatEventDao
-import com.seed.persistence.dbo.ChatEventDbo
-import com.seed.persistence.dbo.ChatEventType
+import com.seed.persistence.db.dao.ChatEventDao
+import com.seed.persistence.db.dbo.ChatEventDbo
+import com.seed.persistence.db.dbo.ChatEventType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharedFlow

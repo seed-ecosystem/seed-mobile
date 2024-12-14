@@ -1,10 +1,10 @@
-package com.seed.persistence.dao
+package com.seed.persistence.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.seed.persistence.dbo.ChatKeyDbo
+import com.seed.persistence.db.dbo.ChatKeyDbo
 
 @Dao
 interface ChatKeyDao {
