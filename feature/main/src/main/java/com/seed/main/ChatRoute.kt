@@ -46,11 +46,7 @@ fun ChatRoute(
 		vm.loadData(
 			onWaitEvent = {
 				coroutineScope.launch {
-					if (state is ChatScreenUiState.HasData) {
-						val hasDataState = state as ChatScreenUiState.HasData
-
-						chatBubbleListState.scrollToItem(index = 0)
-					}
+					chatBubbleListState.scrollToItem(index = 0)
 				}
 			},
 			onNewMessage = {
@@ -65,11 +61,9 @@ fun ChatRoute(
 		onSend = {
 			vm.sendMessage(
 				onSuccess = {
-//					if (state is ChatScreenUiState.HasData) {
-						coroutineScope.launch {
-							chatBubbleListState.animateScrollToItem(0)
-						}
-//					}
+					coroutineScope.launch {
+						chatBubbleListState.animateScrollToItem(0)
+					}
 				},
 				onFailure = {}
 			)
