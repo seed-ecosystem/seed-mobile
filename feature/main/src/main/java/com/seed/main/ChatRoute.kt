@@ -65,11 +65,11 @@ fun ChatRoute(
 		onSend = {
 			vm.sendMessage(
 				onSuccess = {
-					if (state is ChatScreenUiState.HasData) {
+//					if (state is ChatScreenUiState.HasData) {
 						coroutineScope.launch {
-							chatBubbleListState.scrollToItem(0)
+							chatBubbleListState.animateScrollToItem(0)
 						}
-					}
+//					}
 				},
 				onFailure = {}
 			)

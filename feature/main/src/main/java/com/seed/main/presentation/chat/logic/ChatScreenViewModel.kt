@@ -196,22 +196,31 @@ class ChatScreenViewModel(
 			if (_state.value.inputFieldValue.isBlank()) return@launch
 
 			val lastMessageNonce = _state.value.messages?.first()?.nonce ?: return@launch
+			val messageText = _state.value.inputFieldValue
 
-			val sendResult = sendMessageUseCase(
-				chatId = _state.value.chatId,
-				messageText = _state.value.inputFieldValue,
-				lastMessageNonce = lastMessageNonce,
+			viewModelScope.launch {
+				sendMessageUseCase(
+					chatId = _state.value.chatId,
+					messageText = messageText,
+					lastMessageNonce = lastMessageNonce,
+				)
+			}
+
+			updateMessagesWithNewMessage(
+				newMessage = Message(
+					nonce = lastMessageNonce + 1,
+					authorType = AuthorType.Self,
+					authorName = "",
+					messageText = messageText,
+					dateTime = LocalDateTime.now(),
+				)
 			)
 
-			if (sendResult is SendMessageResult.Success) {
-				onSuccess()
-			}
+			onSuccess()
 
 			_state.update {
 				it.copy(inputFieldValue = "")
 			}
-
-			onFailure()
 		}
 	}
 
