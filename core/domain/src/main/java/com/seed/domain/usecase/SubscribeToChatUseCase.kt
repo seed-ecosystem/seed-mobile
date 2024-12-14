@@ -8,9 +8,15 @@ import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.DecodedChatEvent
 import com.seed.domain.model.MessageContent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class SubscribeToChatUseCase(
 	private val chatRepository: ChatRepository,
@@ -30,51 +36,86 @@ class SubscribeToChatUseCase(
 		chatRepository
 			.subscribeToTheChat(scope, chatId, nonce = lastEmittedNonce)
 
-		val resultingFlow = flow {
-			emit(DecodedChatEvent.Stored(messages))
+		var waitTriggered = false
+		val decodedMessageDefers = mutableListOf<Deferred<DecodedChatEvent>>()
+
+		val resultingFlow = channelFlow {
+			send(DecodedChatEvent.Stored(messages))
 
 			chatRepository
 				.chatUpdatesSharedFlow
-				.map { event ->
-					return@map when (event) {
+				.collect { event ->
+					when (event) {
 						is ChatEvent.New -> {
 							lastEmittedNonce = event.nonce
 
-							val decodedChatEvent = decodeRegularMessageChatEvent(
-								chatId = chatId,
-								event = event,
-							)
+							if (!waitTriggered) {
+								val defer =
+									scope.async {
+										val decodedChatEvent = decodeRegularMessageChatEvent(
+											chatId = chatId,
+											event = event,
+										)
 
-							if (decodedChatEvent is DecodedChatEvent.New)
-								chatRepository.addMessage(chatId, decodedChatEvent.message)
+										if (decodedChatEvent is DecodedChatEvent.New)
+											chatRepository.addMessage(
+												chatId,
+												decodedChatEvent.message
+											)
 
-							decodedChatEvent
+										return@async decodedChatEvent
+									}
+
+								decodedMessageDefers.add(defer)
+							} else {
+								val decodedChatEvent = decodeRegularMessageChatEvent(
+									chatId = chatId,
+									event = event,
+								)
+
+								if (decodedChatEvent is DecodedChatEvent.New)
+									chatRepository.addMessage(
+										chatId,
+										decodedChatEvent.message
+									)
+
+								send(decodedChatEvent)
+							}
 						}
 
 						is ChatEvent.Connected -> {
+							waitTriggered = false
+
 							chatRepository.subscribeToTheChat(
 								coroutineScope = scope,
 								chatId = chatId,
 								nonce = lastEmittedNonce,
 							)
 
-							DecodedChatEvent.Connected
+							send(DecodedChatEvent.Connected)
 						}
 
-						is ChatEvent.Disconnected -> DecodedChatEvent.Disconnected
+						is ChatEvent.Disconnected -> send(DecodedChatEvent.Disconnected)
 
-						is ChatEvent.Reconnection -> DecodedChatEvent.Reconnection
+						is ChatEvent.Reconnection -> send(DecodedChatEvent.Reconnection)
 
-						is ChatEvent.Wait -> DecodedChatEvent.Wait
+						is ChatEvent.Wait -> {
+							decodedMessageDefers.awaitAll().forEach {
+								send(it)
+							}
+
+							send(DecodedChatEvent.Wait)
+
+							waitTriggered = true
+						}
 
 						is ChatEvent.Unknown -> {
 							lastEmittedNonce = event.nonce
 
-							DecodedChatEvent.Unknown(event.nonce)
+							send(DecodedChatEvent.Unknown(event.nonce))
 						}
 					}
 				}
-				.collect { emit(it) }
 		}
 
 		return resultingFlow
