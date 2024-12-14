@@ -5,8 +5,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,8 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
 import com.seed.main.presentation.chat.logic.AuthorType
 import com.seed.main.presentation.chat.logic.Message
@@ -42,11 +47,14 @@ fun ChatBubble(
 	}
 
 	Column(
-		modifier = modifier
-			.widthIn(50.dp, 300.dp)
-//			.height(IntrinsicSize.Max) // todo
+		modifier = Modifier
+			.width(IntrinsicSize.Max)
+			.widthIn(100.dp, 350.dp)
 	) {
-		Row {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+		) {
 			if (message.authorType == AuthorType.Others) {
 				Column(
 					verticalArrangement = Arrangement.Bottom,
@@ -78,6 +86,7 @@ fun ChatBubble(
 							style = MaterialTheme.typography.titleSmall,
 							fontWeight = FontWeight.Bold,
 							modifier = Modifier
+								.wrapContentWidth()
 						)
 					}
 
@@ -94,6 +103,7 @@ fun ChatBubble(
 						modifier = Modifier
 							.fillMaxWidth()
 					) {
+						Spacer(Modifier.weight(1f))
 						Text(
 							text = message.dateTime.format(DateTimeFormatter.ofPattern("HH:mm")),
 							style = MaterialTheme.typography.labelMedium,
@@ -130,7 +140,7 @@ private fun ChatBubblePreviewOthers() {
 			nonce = 220,
 			authorType = AuthorType.Others,
 			authorName = "Andrew",
-			messageText = "Some message text.. idk",
+			messageText = LoremIpsum(2).values.first(),
 			dateTime = LocalDateTime.now()
 		),
 	)
