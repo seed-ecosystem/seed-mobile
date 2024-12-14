@@ -2,8 +2,11 @@ package com.seed.main.presentation.chat.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +33,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,17 +51,27 @@ fun MessageInputField(
 	val focusRequester = remember { FocusRequester() }
 
 	Row(
-		verticalAlignment = Alignment.CenterVertically,
+		verticalAlignment = Alignment.Bottom,
 		modifier = modifier
 			.background(
 				color = MaterialTheme.colorScheme.background
 			)
-			.heightIn(24.dp, 128.dp)
+			.heightIn(48.dp, 128.dp)
+			.height(IntrinsicSize.Max)
 			.padding(
-				horizontal = 8.dp,
 				vertical = 4.dp,
 			)
 	) {
+		IconButton(
+			onClick = {}
+		) {
+			Icon(
+				painter = painterResource(com.seed.uikit.R.drawable.emoji_picker_icon),
+				tint = MaterialTheme.colorScheme.secondary,
+				contentDescription = null
+			)
+		}
+
 		BasicTextField(
 			value = inputValue,
 			onValueChange = onInputValueUpdate,
@@ -71,7 +85,10 @@ fun MessageInputField(
 				.weight(1f)
 				.focusRequester(focusRequester)
 		) { innerTextField ->
-			Box {
+			Box(
+				contentAlignment = Alignment.CenterStart,
+				modifier = Modifier.fillMaxHeight()
+			) {
 				innerTextField()
 
 				if (inputValue.isEmpty()) {
