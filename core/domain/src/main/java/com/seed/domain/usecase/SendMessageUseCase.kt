@@ -4,6 +4,7 @@ import com.seed.domain.Logger
 import com.seed.domain.crypto.MessageEncodeOptions
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
+import com.seed.domain.data.NicknameRepository
 import com.seed.domain.data.SendMessageDto
 
 sealed interface SendMessageResult {
@@ -17,19 +18,23 @@ class SendMessageUseCase(
 	private val seedCoder: SeedCoder,
 	private val logger: Logger,
 	private val getMessageKey: GetMessageKeyUseCase,
+	private val nicknameRepository: NicknameRepository,
 ) {
 	suspend operator fun invoke(
 		chatId: String,
-		messageAuthor: String,
 		messageText: String,
 		lastMessageNonce: Int,
 	): SendMessageResult {
+		val author = nicknameRepository.getNickname().let {
+			if (it.isNullOrEmpty()) "Anonymous android user" else it
+		}
+
 		logger.d(
 			tag = "SendMessageUseCase",
 			message = """
 				Sending message with this data:
 				- chatId $chatId
-				- messageAuthor $messageAuthor
+				- messageAuthor $author
 				- messageText $messageText
 				- lastMessageNonce $lastMessageNonce
 			""".trimIndent()
@@ -47,7 +52,7 @@ class SendMessageUseCase(
 
 		val encodingOptions = MessageEncodeOptions(
 			chatId = chatId,
-			title = messageAuthor,
+			title = author,
 			text = messageText,
 			previousKey = messageKey,
 		)

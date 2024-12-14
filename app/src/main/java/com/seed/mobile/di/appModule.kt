@@ -24,7 +24,7 @@ import org.koin.dsl.module
 
 val appModule = module {
 	single { SubscribeToChatUseCase(get(), get(), get(), get()) }
-	single { SendMessageUseCase(get(), get(), get(), get()) }
+	single { SendMessageUseCase(get(), get(), get(), get(), get()) }
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get()) }
 

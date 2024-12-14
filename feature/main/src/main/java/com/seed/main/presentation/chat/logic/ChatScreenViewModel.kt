@@ -193,7 +193,6 @@ class ChatScreenViewModel(
 
 			val sendResult = sendMessageUseCase(
 				chatId = _state.value.chatId,
-				messageAuthor = "Author", // todo
 				messageText = _state.value.inputFieldValue,
 				lastMessageNonce = lastMessageNonce,
 			)
