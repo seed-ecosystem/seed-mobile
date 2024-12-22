@@ -196,19 +196,12 @@ class ChatScreenViewModel(
 			if (_state.value.inputFieldValue.isBlank()) return@launch
 
 			val lastMessageNonce = _state.value.messages?.first()?.nonce ?: return@launch
+			val newMessageNonce = lastMessageNonce + 1
 			val messageText = _state.value.inputFieldValue
-
-			viewModelScope.launch {
-				sendMessageUseCase(
-					chatId = _state.value.chatId,
-					messageText = messageText,
-					lastMessageNonce = lastMessageNonce,
-				)
-			}
 
 			updateMessagesWithNewMessage(
 				newMessage = Message.SelfMessage(
-					nonce = lastMessageNonce + 1,
+					nonce = newMessageNonce,
 					authorName = "",
 					messageText = messageText,
 					dateTime = LocalDateTime.now(),
@@ -217,11 +210,42 @@ class ChatScreenViewModel(
 				)
 			)
 
-			onSuccess()
+			viewModelScope.launch {
+				val sendMessageResult = sendMessageUseCase(
+					chatId = _state.value.chatId,
+					messageText = messageText,
+					lastMessageNonce = lastMessageNonce,
+				)
+
+				updateMessageSendState(
+					nonce = newMessageNonce,
+					isFailed = sendMessageResult is SendMessageResult.Failure
+				)
+			}
 
 			_state.update {
 				it.copy(inputFieldValue = "")
 			}
+
+			onSuccess()
+		}
+	}
+
+	private fun updateMessageSendState(nonce: Int, isFailed: Boolean) {
+		_state.update {
+			val messages = it.messages
+			val newMessages = messages?.map { message ->
+				if (message is Message.SelfMessage && message.nonce == nonce) {
+					message.copy(
+						isSending = false,
+						isSendFailed = isFailed,
+					)
+				} else message
+			}
+
+			it.copy(
+				messages = newMessages
+			)
 		}
 	}
 

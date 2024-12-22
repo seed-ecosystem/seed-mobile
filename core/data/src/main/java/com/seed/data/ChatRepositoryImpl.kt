@@ -5,6 +5,7 @@ import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedMessagingApi
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.SendMessageDto
+import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.MessageContent
 import com.seed.persistence.db.dao.ChatEventDao
@@ -65,7 +66,7 @@ class ChatRepositoryImpl(
 		)
 	}
 
-	override suspend fun sendMessage(sendMessageDto: SendMessageDto) = withContext(Dispatchers.IO) {
+	override suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult = withContext(Dispatchers.IO) {
 		logger.d(
 			tag = "ChatRepository",
 			message = "sendMessage: Sending message $sendMessageDto"
@@ -84,7 +85,11 @@ class ChatRepositoryImpl(
 				tag = "ChatRepository",
 				message = "sendMessage: Error while trying to send api send request: $result"
 			)
+
+			return@withContext SendMessageResult.Failure
 		}
+
+		return@withContext SendMessageResult.Success
 	}
 }
 

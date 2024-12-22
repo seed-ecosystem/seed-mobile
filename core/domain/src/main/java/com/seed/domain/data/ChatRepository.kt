@@ -26,6 +26,11 @@ data class GetOldestChatKeyResult(
 	val keyNonce: Int
 )
 
+sealed interface SendMessageResult {
+	data object Success : SendMessageResult
+	data object Failure : SendMessageResult
+}
+
 interface ChatRepository {
 	val chatUpdatesSharedFlow: SharedFlow<ChatEvent>
 	val connectionState: StateFlow<SocketConnectionState>
@@ -36,7 +41,7 @@ interface ChatRepository {
 
 	suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage)
 
-	suspend fun sendMessage(sendMessageDto: SendMessageDto)
+	suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult
 
 	suspend fun launchConnection(coroutineScope: CoroutineScope)
 

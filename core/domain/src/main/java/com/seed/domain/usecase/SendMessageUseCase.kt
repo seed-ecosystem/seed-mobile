@@ -70,8 +70,10 @@ class SendMessageUseCase(
 			signature = encodingResult.signature,
 		)
 
-		chatRepository.sendMessage(dto)
+		val sendMessageResult = chatRepository.sendMessage(dto)
 
-		return SendMessageResult.Success
+		return if (sendMessageResult is com.seed.domain.data.SendMessageResult.Success) {
+			SendMessageResult.Success
+		} else SendMessageResult.Failure
 	}
 }
