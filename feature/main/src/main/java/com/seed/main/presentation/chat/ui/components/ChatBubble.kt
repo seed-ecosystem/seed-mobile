@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
-import com.seed.main.presentation.chat.logic.AuthorType
 import com.seed.main.presentation.chat.logic.Message
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -33,14 +32,14 @@ fun ChatBubble(
 	message: Message,
 	modifier: Modifier = Modifier
 ) {
-	val cardColors = when (message.authorType) {
-		AuthorType.Self -> CardDefaults.cardColors()
+	val cardColors = when (message) {
+		is Message.SelfMessage -> CardDefaults.cardColors()
 
 		else -> CardDefaults.outlinedCardColors()
 	}
 
 	Column(
-		modifier = Modifier
+		modifier = modifier
 			.width(IntrinsicSize.Max)
 			.widthIn(100.dp, 350.dp)
 	) {
@@ -48,7 +47,7 @@ fun ChatBubble(
 			modifier = Modifier
 				.fillMaxWidth()
 		) {
-			if (message.authorType == AuthorType.Others) {
+			if (message is Message.OthersMessage) {
 				Column(
 					verticalArrangement = Arrangement.Bottom,
 					modifier = Modifier
@@ -65,13 +64,13 @@ fun ChatBubble(
 			Card(
 				colors = cardColors,
 				modifier = Modifier
-					.borderByAuthorType(message.authorType)
+					.borderByAuthorType(message)
 			) {
 				Column(
 					modifier = Modifier
 						.padding(8.dp)
 				) {
-					if (message.authorType == AuthorType.Others) {
+					if (message is Message.OthersMessage) {
 						Text(
 							text = message.authorName,
 							style = MaterialTheme.typography.titleSmall,
@@ -110,9 +109,9 @@ fun ChatBubble(
 }
 
 @Composable
-private fun Modifier.borderByAuthorType(authorType: AuthorType): Modifier {
-	return when (authorType) {
-		AuthorType.Self -> this
+private fun Modifier.borderByAuthorType(message: Message): Modifier {
+	return when (message) {
+		is Message.SelfMessage -> this
 
 		else -> this.then(
 			Modifier.border(
@@ -127,9 +126,8 @@ private fun Modifier.borderByAuthorType(authorType: AuthorType): Modifier {
 @Composable
 private fun ChatBubblePreviewOthers() {
 	ChatBubble(
-		message = Message(
+		message = Message.OthersMessage(
 			nonce = 220,
-			authorType = AuthorType.Others,
 			authorName = "Andrew",
 			messageText = LoremIpsum(2).values.first(),
 			dateTime = LocalDateTime.now()
@@ -141,9 +139,8 @@ private fun ChatBubblePreviewOthers() {
 @Composable
 private fun ChatBubblePreviewSelf() {
 	ChatBubble(
-		message = Message(
+		message = Message.SelfMessage(
 			nonce = 1,
-			authorType = AuthorType.Self,
 			authorName = "я",
 			messageText = "одногруппник работает на первой линии в b2b инфосек-конторе, иногда отвечает на тикеты прямо на парах. это милейшее зрелище, должен сказать: два взрослых человека на зарплате вежливо и предельно культурно обсуждают технические проблемы.",
 			dateTime = LocalDateTime.now()

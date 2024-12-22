@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.seed.main.presentation.chat.logic.AuthorType
 import com.seed.main.presentation.chat.logic.Message
 
 @Composable
@@ -70,4 +69,4 @@ fun ChatBubbleList(
 
 @Composable
 private fun horizontalArrangementByAuthorType(message: Message) =
-	if (message.authorType == AuthorType.Self) Arrangement.End else Arrangement.Start
+	if (message is Message.SelfMessage) Arrangement.End else Arrangement.Start

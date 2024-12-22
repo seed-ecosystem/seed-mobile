@@ -207,12 +207,13 @@ class ChatScreenViewModel(
 			}
 
 			updateMessagesWithNewMessage(
-				newMessage = Message(
+				newMessage = Message.SelfMessage(
 					nonce = lastMessageNonce + 1,
-					authorType = AuthorType.Self,
 					authorName = "",
 					messageText = messageText,
 					dateTime = LocalDateTime.now(),
+					isSending = true,
+					isSendFailed = false,
 				)
 			)
 
@@ -235,11 +236,15 @@ class ChatScreenViewModel(
 }
 
 fun MessageContent.RegularMessage.toMessage(selfNickname: String?): Message {
-	val authorType = if (this.title == selfNickname) AuthorType.Self else AuthorType.Others
-
-	return Message(
+	return if (this.title == selfNickname) Message.SelfMessage(
 		nonce = this.nonce,
-		authorType = authorType,
+		authorName = this.title,
+		messageText = this.text,
+		dateTime = LocalDateTime.now(), // todo
+		isSending = false,
+		isSendFailed = false,
+	) else Message.OthersMessage(
+		nonce = this.nonce,
 		authorName = this.title,
 		messageText = this.text,
 		dateTime = LocalDateTime.now() // todo
