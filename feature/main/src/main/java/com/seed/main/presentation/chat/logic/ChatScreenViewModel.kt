@@ -195,7 +195,7 @@ class ChatScreenViewModel(
 		viewModelScope.launch {
 			if (_state.value.inputFieldValue.isBlank()) return@launch
 
-			val lastMessageNonce = _state.value.messages?.first()?.nonce ?: return@launch
+			val lastMessageNonce = getLastMessageNonce() ?: return@launch
 			val newMessageNonce = lastMessageNonce + 1
 			val messageText = _state.value.inputFieldValue
 
@@ -230,6 +230,11 @@ class ChatScreenViewModel(
 			onSuccess()
 		}
 	}
+
+	private fun getLastMessageNonce() = _state.value.messages?.first {
+		val isSendFailed = if (it is Message.SelfMessage) it.isSendFailed else false
+		!isSendFailed
+	}?.nonce
 
 	private fun updateMessageSendState(nonce: Int, isFailed: Boolean) {
 		_state.update {
