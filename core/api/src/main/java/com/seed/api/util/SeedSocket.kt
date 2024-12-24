@@ -37,7 +37,7 @@ interface SeedSocket {
 	suspend fun disconnect()
 }
 
-fun createSeedSocket(
+fun SeedSocket(
 	logger: Logger,
 	host: String,
 	path: String,
