@@ -2,8 +2,6 @@ package com.seed.domain.usecase
 
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatKeyRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class GetMessageKeyUseCase(
 	private val coder: SeedCoder,
@@ -12,13 +10,12 @@ class GetMessageKeyUseCase(
 	suspend operator fun invoke(
 		chatId: String,
 		nonce: Int,
-	): String? = withContext(Dispatchers.Default) {
+	): String? {
 		val cachedKey = chatKeyRepository.getChatKey(chatId, nonce)
 
-		if (cachedKey != null) return@withContext cachedKey
+		if (cachedKey != null) return cachedKey
 
-		val getLastChatKeyResult = chatKeyRepository.getLastChatKey(chatId = chatId)
-			?: return@withContext null
+		val getLastChatKeyResult = chatKeyRepository.getLastChatKey(chatId = chatId) ?: return null
 
 		if (getLastChatKeyResult.keyNonce <= nonce) {
 			val key = deriveTillNonce(
@@ -29,11 +26,11 @@ class GetMessageKeyUseCase(
 
 			chatKeyRepository.insertChatKey(chatId, nonce, key)
 
-			return@withContext key
+			return key
 		} else {
-			val oldestChatKey = chatKeyRepository.getOldestChatKey(chatId) ?: return@withContext null
+			val oldestChatKey = chatKeyRepository.getOldestChatKey(chatId) ?: return null
 
-			if (oldestChatKey.keyNonce > nonce) return@withContext null
+			if (oldestChatKey.keyNonce > nonce) return null
 
 			val key = deriveTillNonce(
 				key = oldestChatKey.key,
@@ -41,7 +38,7 @@ class GetMessageKeyUseCase(
 				nonce = nonce,
 			)
 
-			return@withContext key
+			return key
 		}
 	}
 

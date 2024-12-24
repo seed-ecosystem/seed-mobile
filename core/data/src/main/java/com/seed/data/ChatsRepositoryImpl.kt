@@ -1,6 +1,5 @@
 package com.seed.data
 
-import com.seed.domain.crypto.EncodeOptions
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.model.Chat
@@ -23,36 +22,29 @@ class ChatsRepositoryImpl(
 			.map { it.map(ChatDbo::toChat) }
 	}
 
-	override suspend fun add(key: String, keyNonce: Int, name: String) = withContext(Dispatchers.IO) {
-		val chatIdEncodeResult =
-			seedCoder.encode(
-				options = EncodeOptions(
-					content = "CHAT_ID",
-					key = key
-				)
-			)
+	override suspend fun add(key: String, keyNonce: Int, name: String) {
 		val tempChatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=" // TODO
 
-		if (chatIdEncodeResult == null) return@withContext
-
-		chatKeyDao.set(
-			key = ChatKeyDbo(
-				key = key,
-				nonce = keyNonce,
-				chatId = tempChatId,
+		withContext(Dispatchers.IO) {
+			chatKeyDao.set(
+				key = ChatKeyDbo(
+					key = key,
+					nonce = keyNonce,
+					chatId = tempChatId,
+				)
 			)
-		)
 
-		chatDao.insert(
-			ChatDbo(
-				chatId = tempChatId,
-				chatKey = key,
-				chatName = name
+			chatDao.insert(
+				ChatDbo(
+					chatId = tempChatId,
+					chatKey = key,
+					chatName = name
+				)
 			)
-		)
+		}
 	}
 
-	override suspend fun delete(chatId: String) {
+	override suspend fun delete(chatId: String) = withContext(Dispatchers.IO) {
 		chatDao.deleteById(chatId)
 	}
 }

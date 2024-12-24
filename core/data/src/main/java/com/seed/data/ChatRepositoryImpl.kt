@@ -12,9 +12,7 @@ import com.seed.persistence.db.dao.ChatEventDao
 import com.seed.persistence.db.dbo.ChatEventDbo
 import com.seed.persistence.db.dbo.ChatEventType
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.withContext
 
 class ChatRepositoryImpl(
 	private val chatEventDao: ChatEventDao,
@@ -49,16 +47,14 @@ class ChatRepositoryImpl(
 	}
 
 	override suspend fun getMessages(chatId: String): List<MessageContent> =
-		withContext(Dispatchers.IO) {
-			chatEventDao.getAll()
-				.map {
-					MessageContent.RegularMessage(
-						nonce = it.nonce,
-						title = it.title,
-						text = it.text,
-					)
-				}
-		}
+		chatEventDao.getAll()
+			.map {
+				MessageContent.RegularMessage(
+					nonce = it.nonce,
+					title = it.title,
+					text = it.text,
+				)
+			}
 
 	override suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage) {
 		chatEventDao.insert(
@@ -66,7 +62,7 @@ class ChatRepositoryImpl(
 		)
 	}
 
-	override suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult = withContext(Dispatchers.IO) {
+	override suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult {
 		logger.d(
 			tag = "ChatRepository",
 			message = "sendMessage: Sending message $sendMessageDto"
@@ -86,10 +82,10 @@ class ChatRepositoryImpl(
 				message = "sendMessage: Error while trying to send api send request: $result"
 			)
 
-			return@withContext SendMessageResult.Failure
+			return SendMessageResult.Failure
 		}
 
-		return@withContext SendMessageResult.Success
+		return SendMessageResult.Success
 	}
 }
 

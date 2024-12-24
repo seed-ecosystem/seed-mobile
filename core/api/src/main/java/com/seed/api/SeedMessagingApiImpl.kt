@@ -16,13 +16,11 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -102,7 +100,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 			contentIv: String,
 			nonce: Int,
 			signature: String
-		): ApiResponse<Unit> = withContext(Dispatchers.IO) {
+		): ApiResponse<Unit> {
 			val jsonRequest = Json.encodeToString(
 				SendMessageRequest.createSendMessageRequest(
 					chatId = chatId,
@@ -116,7 +114,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 			val socketSendResult = socket.send(jsonRequest)
 
 			if (socketSendResult == SocketSendResult.FAILURE) {
-				return@withContext ApiResponse.Failure()
+				return ApiResponse.Failure()
 			}
 
 			logger.d(
@@ -124,7 +122,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 				message = "sendMessage: Sent json: $jsonRequest"
 			)
 
-			return@withContext suspendCoroutine { continuation ->
+			return suspendCoroutine { continuation ->
 				responseQueue.add { response ->
 					logger.d(
 						tag = "SeedMessagingApi",
@@ -137,8 +135,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 			}
 		}
 
-		override suspend fun subscribeToChat(chatId: String, nonce: Int): ApiResponse<Unit> =
-			withContext(Dispatchers.IO) {
+		override suspend fun subscribeToChat(chatId: String, nonce: Int): ApiResponse<Unit> {
 				val subscribeRequest = SubscribeRequest(
 					type = "subscribe",
 					chatId = chatId,
@@ -149,7 +146,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 				val socketSendResult = socket.send(jsonRequest)
 
 				if (socketSendResult == SocketSendResult.FAILURE) {
-					return@withContext ApiResponse.Failure()
+					return ApiResponse.Failure()
 				}
 
 				logger.d(
@@ -157,7 +154,7 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 					message = "subscribeToChat: Sent $jsonRequest"
 				)
 
-				return@withContext suspendCoroutine { continuation ->
+				return suspendCoroutine { continuation ->
 					responseQueue.add { response ->
 						logger.d(
 							tag = "SeedMessagingApi",

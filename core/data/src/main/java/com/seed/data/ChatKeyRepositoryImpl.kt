@@ -22,30 +22,27 @@ class ChatKeyRepositoryImpl(
 			)
 		}
 
-	override suspend fun getChatKey(chatId: String, nonce: Int): String? =
-		withContext(Dispatchers.IO) {
-			val chatKey = chatKeyDao.getByNonce(chatId, nonce)
+	override suspend fun getChatKey(chatId: String, nonce: Int): String? {
+		val chatKey = chatKeyDao.getByNonce(chatId, nonce)
 
-			return@withContext chatKey?.key
-		}
+		return chatKey?.key
+	}
 
-	override suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult? =
-		withContext(Dispatchers.IO) {
-			val chatKeyDbo = chatKeyDao.getLatest(chatId) ?: return@withContext null
+	override suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult? {
+		val chatKeyDbo = chatKeyDao.getLatest(chatId) ?: return null
 
-			return@withContext GetLastChatKeyResult(
-				key = chatKeyDbo.key,
-				keyNonce = chatKeyDbo.nonce
-			)
-		}
+		return GetLastChatKeyResult(
+			key = chatKeyDbo.key,
+			keyNonce = chatKeyDbo.nonce
+		)
+	}
 
-	override suspend fun getOldestChatKey(chatId: String): GetOldestChatKeyResult? =
-		withContext(Dispatchers.IO) {
-			val chatKeyDbo = chatKeyDao.getOldest(chatId) ?: return@withContext null
+	override suspend fun getOldestChatKey(chatId: String): GetOldestChatKeyResult? {
+		val chatKeyDbo = chatKeyDao.getOldest(chatId) ?: return null
 
-			return@withContext GetOldestChatKeyResult(
-				key = chatKeyDbo.key,
-				keyNonce = chatKeyDbo.nonce
-			)
-		}
+		return GetOldestChatKeyResult(
+			key = chatKeyDbo.key,
+			keyNonce = chatKeyDbo.nonce
+		)
+	}
 }
