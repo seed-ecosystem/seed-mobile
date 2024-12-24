@@ -1,7 +1,6 @@
 package com.seed.domain.usecase
 
 import com.seed.domain.Logger
-import com.seed.domain.crypto.DecodeOptions
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.model.ChatEvent
@@ -134,15 +133,12 @@ class SubscribeToChatUseCase(
 			nonce = event.nonce
 		) ?: return DecodedChatEvent.Unknown(nonce = event.nonce)
 
-		val decodeOptions = DecodeOptions(
+		val decodeResult = coder.decodeChatUpdate(
 			content = event.encryptedContentBase64,
 			contentIv = event.encryptedContentIv,
 			signature = event.signature,
-			key = messageKey
-		)
-
-		val decodeResult = coder.decodeChatUpdate(decodeOptions)
-			?: return DecodedChatEvent.Unknown(event.nonce)
+			key = messageKey,
+		) ?: return DecodedChatEvent.Unknown(event.nonce)
 
 		return DecodedChatEvent.New(
 			message = MessageContent.RegularMessage(

@@ -1,7 +1,6 @@
 package com.seed.domain.usecase
 
 import com.seed.domain.Logger
-import com.seed.domain.crypto.MessageEncodeOptions
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.NicknameRepository
@@ -50,15 +49,13 @@ class SendMessageUseCase(
 			return SendMessageResult.Failure
 		}
 
-		val encodingOptions = MessageEncodeOptions(
-			chatId = chatId,
-			title = author,
-			text = messageText,
-			previousKey = messageKey,
-		)
-
 		val encodingResult = seedCoder
-			.encodeMessage(encodingOptions)
+			.encodeMessage(
+				chatId = chatId,
+				title = author,
+				text = messageText,
+				previousKey = messageKey,
+			)
 
 		if (encodingResult == null) return SendMessageResult.Failure
 

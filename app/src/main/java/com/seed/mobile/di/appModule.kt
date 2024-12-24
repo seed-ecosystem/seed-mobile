@@ -2,7 +2,7 @@ package com.seed.mobile.di
 
 import com.seed.api.createSeedMessagingApi
 import com.seed.api.util.SeedSocket
-import com.seed.crypto.createSeedCoder
+import com.seed.crypto.SeedCoder
 import com.seed.data.ChatKeyRepositoryImpl
 import com.seed.data.ChatRepositoryImpl
 import com.seed.data.ChatsRepositoryImpl
@@ -32,7 +32,7 @@ val appModule = module {
 	factory<ChatKeyRepository> { ChatKeyRepositoryImpl(get()) }
 	factory<NicknameRepository> { NicknameRepositoryImpl(get()) }
 
-	factory<SeedCoder> { createSeedCoder(get()) }
+	factory<SeedCoder> { SeedCoder(get()) }
 
 	single<SeedSocket> {
 		SeedSocket(
