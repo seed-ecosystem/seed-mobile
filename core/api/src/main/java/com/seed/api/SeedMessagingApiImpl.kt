@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.plus
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -48,8 +47,6 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 
 		override suspend fun launchConnection(coroutineScope: CoroutineScope) {
 			coroutineScope.launch {
-				socket.initializeSocketConnection(coroutineScope + coroutineContext)
-
 				socket.socketConnectionEvents.collect { socketEvent ->
 					when (socketEvent) {
 						is SocketEvent.IncomingContent -> {

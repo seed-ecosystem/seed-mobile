@@ -253,15 +253,6 @@ class ChatScreenViewModel(
 			)
 		}
 	}
-
-	@OptIn(DelicateCoroutinesApi::class)
-	override fun onCleared() {
-		GlobalScope.launch {
-			chatRepository.stopConnection()
-
-			super.onCleared()
-		}
-	}
 }
 
 fun MessageContent.RegularMessage.toMessage(selfNickname: String?): Message {

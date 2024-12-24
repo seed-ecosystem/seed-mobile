@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
+import com.seed.api.util.SeedSocket
 import com.seed.main.di.mainModule
 import com.seed.mobile.di.appModule
 import com.seed.persistence.di.persistenceModule
@@ -26,6 +28,10 @@ class MainActivity : ComponentActivity() {
 				modules(mainModule, settingsModule, appModule, persistenceModule)
 			}
 		}
+
+		val koin = GlobalContext.getKoinApplicationOrNull()?.koin
+		val seedSocket = koin!!.get<SeedSocket>()
+		seedSocket.initializeSocketConnection(lifecycleScope)
 
 		enableEdgeToEdge()
 

@@ -22,14 +22,6 @@ class ChatRepositoryImpl(
 	override val chatUpdatesSharedFlow: SharedFlow<ChatEvent> = messagingApi.chatEvents
 	override val connectionState = messagingApi.connectionState
 
-	override suspend fun launchConnection(coroutineScope: CoroutineScope) {
-		messagingApi.launchConnection(coroutineScope)
-	}
-
-	override suspend fun stopConnection() {
-		messagingApi.stopConnection()
-	}
-
 	override suspend fun subscribeToTheChat(
 		coroutineScope: CoroutineScope,
 		chatId: String,

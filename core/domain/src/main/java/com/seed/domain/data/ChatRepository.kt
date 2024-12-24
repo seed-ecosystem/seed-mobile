@@ -42,8 +42,4 @@ interface ChatRepository {
 	suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage)
 
 	suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult
-
-	suspend fun launchConnection(coroutineScope: CoroutineScope)
-
-	suspend fun stopConnection()
 }

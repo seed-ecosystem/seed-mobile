@@ -7,15 +7,11 @@ import com.seed.domain.model.ChatEvent
 import com.seed.domain.model.DecodedChatEvent
 import com.seed.domain.model.MessageContent
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 
 class SubscribeToChatUseCase(
 	private val chatRepository: ChatRepository,
@@ -24,8 +20,6 @@ class SubscribeToChatUseCase(
 	private val getMessageKeyUseCase: GetMessageKeyUseCase,
 ) {
 	suspend operator fun invoke(chatId: String, scope: CoroutineScope): Flow<DecodedChatEvent> {
-		chatRepository.launchConnection(scope)
-
 		val messages = chatRepository.getMessages(
 			chatId = chatId
 		)
