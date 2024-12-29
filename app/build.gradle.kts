@@ -44,6 +44,8 @@ android {
 }
 
 dependencies {
+	implementation(projects.umbrella)
+
 	implementation(project(":core:uikit"))
 	implementation(project(":core:domain"))
 	implementation(project(":core:data"))
