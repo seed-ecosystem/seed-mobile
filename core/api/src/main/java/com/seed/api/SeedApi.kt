@@ -9,9 +9,9 @@ import com.seed.api.util.SocketEvent
 import com.seed.api.util.SocketSendResult
 import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
-import com.seed.domain.api.SeedMessagingApi
+import com.seed.domain.api.SeedApi
 import com.seed.domain.api.SocketConnectionState
-import com.seed.domain.model.ChatEvent
+import com.seed.domain.model.ApiEvent
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,25 +27,16 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi {
+fun SeedApi(logger: Logger, socket: SeedSocket): SeedApi {
 	val responseQueue: MutableList<(IncomingContent.Response) -> Unit> = mutableListOf()
 
-	val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-		logger.e(
-			tag = "SeedMessagingApi",
-			message = "An unhandled error occured: ${throwable.message.toString()}"
-		)
-	}
-
-	val coroutineContext: CoroutineContext = Dispatchers.IO + Job() + coroutineExceptionHandler
-
-	return object : SeedMessagingApi {
-		private val _chatEvents = MutableSharedFlow<ChatEvent>()
-		override val chatEvents: SharedFlow<ChatEvent> = _chatEvents
+	return object : SeedApi {
+		private val _apiEvents = MutableSharedFlow<ApiEvent>()
+		override val apiEvents: SharedFlow<ApiEvent> = _apiEvents
 
 		override val connectionState: StateFlow<SocketConnectionState> = socket.connectionState
 
-		override suspend fun launchConnection(coroutineScope: CoroutineScope) {
+		override fun launchConnection(coroutineScope: CoroutineScope) {
 			coroutineScope.launch {
 				socket.socketConnectionEvents.collect { socketEvent ->
 					when (socketEvent) {
@@ -60,19 +51,19 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 							}
 
 							if (incomingMessage is IncomingContent.SubscribeEvent) {
-								_chatEvents.emit(
+								_apiEvents.emit(
 									incomingMessage.toChatEvent()
 								)
 							}
 						}
 
 						is SocketEvent.Reconnection -> {
-							_chatEvents.emit(ChatEvent.Reconnection)
+							_apiEvents.emit(ApiEvent.Reconnection)
 						}
 
-						SocketEvent.Connected -> _chatEvents.emit(ChatEvent.Connected)
+						SocketEvent.Connected -> _apiEvents.emit(ApiEvent.Connected)
 
-						SocketEvent.Disconnected -> _chatEvents.emit(ChatEvent.Disconnected)
+						SocketEvent.Disconnected -> _apiEvents.emit(ApiEvent.Disconnected)
 					}
 				}
 			}
@@ -133,45 +124,46 @@ fun createSeedMessagingApi(logger: Logger, socket: SeedSocket): SeedMessagingApi
 		}
 
 		override suspend fun subscribeToChat(chatId: String, nonce: Int): ApiResponse<Unit> {
-				val subscribeRequest = SubscribeRequest(
-					type = "subscribe",
-					chatId = chatId,
-					nonce = nonce
-				)
-				val jsonRequest = Json.encodeToString(subscribeRequest)
+			val subscribeRequest = SubscribeRequest(
+				type = "subscribe",
+				chatId = chatId,
+				nonce = nonce
+			)
+			val jsonRequest = Json.encodeToString(subscribeRequest)
 
-				val socketSendResult = socket.send(jsonRequest)
+			val socketSendResult = socket.send(jsonRequest)
 
-				if (socketSendResult == SocketSendResult.FAILURE) {
-					return ApiResponse.Failure()
-				}
+			if (socketSendResult == SocketSendResult.FAILURE) {
+				return ApiResponse.Failure()
+			}
 
-				logger.d(
-					tag = "SeedMessagingApi",
-					message = "subscribeToChat: Sent $jsonRequest"
-				)
+			logger.d(
+				tag = "SeedMessagingApi",
+				message = "subscribeToChat: Sent $jsonRequest"
+			)
 
-				return suspendCoroutine { continuation ->
-					responseQueue.add { response ->
-						logger.d(
-							tag = "SeedMessagingApi",
-							message = "subscribeToChat: Got response: $response"
-						)
+			return suspendCoroutine { continuation ->
+				responseQueue.add { response ->
+					logger.d(
+						tag = "SeedMessagingApi",
+						message = "subscribeToChat: Got response: $response"
+					)
 
-						if (response.status) continuation.resume(ApiResponse.Success(Unit))
-						else continuation.resume(ApiResponse.Failure())
-					}
+					if (response.status) continuation.resume(ApiResponse.Success(Unit))
+					else continuation.resume(ApiResponse.Failure())
 				}
 			}
+		}
 	}
 }
 
-private fun IncomingContent.SubscribeEvent.toChatEvent(): ChatEvent {
+private fun IncomingContent.SubscribeEvent.toChatEvent(): ApiEvent {
 	return when (this.event) {
 		is EventContent.New -> {
 			val newMessage = this.event.message
 
-			ChatEvent.New(
+			ApiEvent.New(
+				chatId = newMessage.chatId,
 				encryptedContentBase64 = newMessage.content,
 				encryptedContentIv = newMessage.contentIV,
 				nonce = newMessage.nonce,
@@ -180,7 +172,7 @@ private fun IncomingContent.SubscribeEvent.toChatEvent(): ChatEvent {
 		}
 
 		is EventContent.Wait -> {
-			ChatEvent.Wait
+			ApiEvent.Wait(this.event.chatId)
 		}
 	}
 }

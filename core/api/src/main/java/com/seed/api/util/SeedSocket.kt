@@ -156,6 +156,10 @@ fun SeedSocket(
 
 	override suspend fun send(jsonContent: String): SocketSendResult {
 		try {
+			while (websocketSession == null) { // TODO: resolve this strange logic
+				delay(100)
+			}
+
 			if (websocketSession == null) {
 				logger.e(
 					tag = "SeedSocket",

@@ -32,12 +32,6 @@ fun ChatRoute(
 	val context = LocalContext.current
 
 	LaunchedEffect(Unit) {
-		coroutineScope.launch {
-			vm.debugEvents.collect { debugEvent ->
-				Toast.makeText(context, debugEvent, Toast.LENGTH_SHORT).show()
-			}
-		}
-
 		vm.setInitialData(
 			chatName = initialData.chatName,
 			chatId = initialData.chatId,

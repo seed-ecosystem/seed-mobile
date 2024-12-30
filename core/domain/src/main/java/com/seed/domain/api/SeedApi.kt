@@ -1,15 +1,15 @@
 package com.seed.domain.api
 
-import com.seed.domain.model.ChatEvent
+import com.seed.domain.model.ApiEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
-interface SeedMessagingApi {
-	val chatEvents: SharedFlow<ChatEvent>
+interface SeedApi {
+	val apiEvents: SharedFlow<ApiEvent>
 	val connectionState: StateFlow<SocketConnectionState>
 
-	suspend fun launchConnection(coroutineScope: CoroutineScope)
+	fun launchConnection(coroutineScope: CoroutineScope)
 
 	suspend fun stopConnection()
 

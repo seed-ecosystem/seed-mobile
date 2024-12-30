@@ -1,145 +1,97 @@
 package com.seed.domain.usecase
 
 import com.seed.domain.Logger
-import com.seed.domain.crypto.SeedCoder
+import com.seed.domain.SeedWorkerStateHandle
+import com.seed.domain.WorkerStateHandleEvent
 import com.seed.domain.data.ChatRepository
-import com.seed.domain.model.ChatEvent
-import com.seed.domain.model.DecodedChatEvent
 import com.seed.domain.model.MessageContent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flow
+
+sealed interface SubscribeToChatUseCaseEvent {
+	data class Stored(
+		val chatId: String,
+		val messages: List<MessageContent>,
+	) : SubscribeToChatUseCaseEvent
+
+	data class New(
+		val chatId: String,
+		val message: List<MessageContent.RegularMessage>,
+	) : SubscribeToChatUseCaseEvent
+
+	data class Wait(val chatId: String) : SubscribeToChatUseCaseEvent
+
+	data class Unknown(
+		val nonce: Int
+	) : SubscribeToChatUseCaseEvent
+
+	data object Reconnection : SubscribeToChatUseCaseEvent
+
+	data object Connected : SubscribeToChatUseCaseEvent
+
+	data object Disconnected : SubscribeToChatUseCaseEvent
+}
 
 class SubscribeToChatUseCase(
 	private val chatRepository: ChatRepository,
-	private val coder: SeedCoder,
+	private val workerStateHandle: SeedWorkerStateHandle,
 	private val logger: Logger,
-	private val getMessageKeyUseCase: GetMessageKeyUseCase,
 ) {
-	suspend operator fun invoke(chatId: String, scope: CoroutineScope): Flow<DecodedChatEvent> {
-		val messages = chatRepository.getMessages(
-			chatId = chatId
-		)
+	suspend operator fun invoke(
+		chatId: String
+	): Flow<SubscribeToChatUseCaseEvent> {
+		return flow {
+			// TODO: solve with stored messages
 
-		var lastEmittedNonce = getLastCachedNonce(messages)
+			val messages = chatRepository.getMessages(chatId)
+				.sortedBy { it.nonce }
 
-		chatRepository
-			.subscribeToTheChat(scope, chatId, nonce = lastEmittedNonce)
+			logger.d(
+				tag = "SubscribeToChatUseCase",
+				message = "Emitting stored message list for $chatId"
+			)
 
-		var waitTriggered = false
-		val decodedMessageDefers = mutableListOf<Deferred<DecodedChatEvent>>()
+			emit(
+				SubscribeToChatUseCaseEvent.Stored(
+					chatId = chatId,
+					messages = messages,
+				)
+			)
 
-		val resultingFlow = channelFlow {
-			send(DecodedChatEvent.Stored(messages))
+			workerStateHandle
+				.events
+				.filter { event ->
+					return@filter when (event) {
+						is WorkerStateHandleEvent.New -> {
+							event.chatId == chatId
+						}
 
-			chatRepository
-				.chatUpdatesSharedFlow
+						is WorkerStateHandleEvent.Wait -> {
+							event.chatId == chatId
+						}
+
+						is WorkerStateHandleEvent.Unknown -> false
+
+						else -> true
+					}
+				}
 				.collect { event ->
 					when (event) {
-						is ChatEvent.New -> {
-							lastEmittedNonce = event.nonce
-
-							if (!waitTriggered) {
-								val defer =
-									scope.async {
-										val decodedChatEvent = decodeRegularMessageChatEvent(
-											chatId = chatId,
-											event = event,
-										)
-
-										if (decodedChatEvent is DecodedChatEvent.New)
-											chatRepository.addMessage(
-												chatId,
-												decodedChatEvent.message
-											)
-
-										return@async decodedChatEvent
-									}
-
-								decodedMessageDefers.add(defer)
-							} else {
-								val decodedChatEvent = decodeRegularMessageChatEvent(
-									chatId = chatId,
-									event = event,
-								)
-
-								if (decodedChatEvent is DecodedChatEvent.New)
-									chatRepository.addMessage(
-										chatId,
-										decodedChatEvent.message
-									)
-
-								send(decodedChatEvent)
-							}
-						}
-
-						is ChatEvent.Connected -> {
-							waitTriggered = false
-
-							chatRepository.subscribeToTheChat(
-								coroutineScope = scope,
-								chatId = chatId,
-								nonce = lastEmittedNonce,
+						is WorkerStateHandleEvent.New -> emit(
+							SubscribeToChatUseCaseEvent.New(
+								event.chatId,
+								event.messages
 							)
+						)
 
-							send(DecodedChatEvent.Connected)
-						}
-
-						is ChatEvent.Disconnected -> send(DecodedChatEvent.Disconnected)
-
-						is ChatEvent.Reconnection -> send(DecodedChatEvent.Reconnection)
-
-						is ChatEvent.Wait -> {
-							decodedMessageDefers.awaitAll().forEach {
-								send(it)
-							}
-
-							send(DecodedChatEvent.Wait)
-
-							waitTriggered = true
-						}
-
-						is ChatEvent.Unknown -> {
-							lastEmittedNonce = event.nonce
-
-							send(DecodedChatEvent.Unknown(event.nonce))
-						}
+						WorkerStateHandleEvent.Connected -> emit(SubscribeToChatUseCaseEvent.Connected)
+						WorkerStateHandleEvent.Disconnected -> emit(SubscribeToChatUseCaseEvent.Disconnected)
+						WorkerStateHandleEvent.Reconnection -> emit(SubscribeToChatUseCaseEvent.Reconnection)
+						is WorkerStateHandleEvent.Unknown -> emit(SubscribeToChatUseCaseEvent.Unknown(event.nonce))
+						is WorkerStateHandleEvent.Wait -> emit(SubscribeToChatUseCaseEvent.Wait(event.chatId))
 					}
 				}
 		}
-
-		return resultingFlow
-	}
-
-	private fun getLastCachedNonce(messages: List<MessageContent>) =
-		if (messages.isEmpty()) 0
-		else messages.maxOf { if (it is MessageContent.RegularMessage) it.nonce else 0 }
-
-	private suspend fun decodeRegularMessageChatEvent(
-		chatId: String,
-		event: ChatEvent.New
-	): DecodedChatEvent {
-		val messageKey = getMessageKeyUseCase(
-			chatId = chatId,
-			nonce = event.nonce
-		) ?: return DecodedChatEvent.Unknown(nonce = event.nonce)
-
-		val decodeResult = coder.decodeChatUpdate(
-			content = event.encryptedContentBase64,
-			contentIv = event.encryptedContentIv,
-			signature = event.signature,
-			key = messageKey,
-		) ?: return DecodedChatEvent.Unknown(event.nonce)
-
-		return DecodedChatEvent.New(
-			message = MessageContent.RegularMessage(
-				nonce = event.nonce,
-				title = decodeResult.title,
-				text = decodeResult.text,
-			)
-		)
 	}
 }

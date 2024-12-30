@@ -1,6 +1,6 @@
 package com.seed.mobile.di
 
-import com.seed.api.createSeedMessagingApi
+import com.seed.api.SeedApi
 import com.seed.api.util.SeedSocket
 import com.seed.crypto.SeedCoder
 import com.seed.data.ChatKeyRepositoryImpl
@@ -8,7 +8,9 @@ import com.seed.data.ChatRepositoryImpl
 import com.seed.data.ChatsRepositoryImpl
 import com.seed.data.NicknameRepositoryImpl
 import com.seed.domain.Logger
-import com.seed.domain.api.SeedMessagingApi
+import com.seed.domain.SeedWorker
+import com.seed.domain.SeedWorkerStateHandle
+import com.seed.domain.api.SeedApi
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatKeyRepository
 import com.seed.domain.data.ChatRepository
@@ -22,7 +24,7 @@ import com.seed.mobile.LoggerImpl
 import org.koin.dsl.module
 
 val appModule = module {
-	single { SubscribeToChatUseCase(get(), get(), get(), get()) }
+	single { SubscribeToChatUseCase(get(), get(), get()) }
 	single { SendMessageUseCase(get(), get(), get(), get(), get()) }
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get()) }
@@ -43,11 +45,19 @@ val appModule = module {
 		)
 	}
 
-	single<SeedMessagingApi> {
-		createSeedMessagingApi(
+	single<SeedApi> {
+		SeedApi(
 			logger = get(),
 			socket = get(),
 		)
+	}
+
+	single<SeedWorker> {
+		SeedWorker(get(), get(), get(), get(), get())
+	}
+
+	single<SeedWorkerStateHandle> {
+		SeedWorkerStateHandle(get(), get(), get())
 	}
 
 	single<Logger> { LoggerImpl() }

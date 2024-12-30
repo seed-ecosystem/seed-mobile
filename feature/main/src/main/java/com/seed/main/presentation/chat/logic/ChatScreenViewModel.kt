@@ -3,6 +3,8 @@ package com.seed.main.presentation.chat.logic
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
+import com.seed.domain.SeedWorkerStateHandle
+import com.seed.domain.WorkerEvent
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.NicknameRepository
@@ -11,6 +13,7 @@ import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
+import com.seed.domain.usecase.SubscribeToChatUseCaseEvent
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -65,14 +68,11 @@ private data class ChatScreenVmState(
 class ChatScreenViewModel(
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
-	private val chatRepository: ChatRepository,
+	private val workerStateHandle: SeedWorkerStateHandle,
 	private val nicknameRepository: NicknameRepository,
 	private val logger: Logger,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState())
-
-	private val _debugEvents = MutableSharedFlow<String>()
-	val debugEvents: SharedFlow<String> = _debugEvents
 
 	val state: StateFlow<ChatScreenUiState> = _state
 		.map(ChatScreenVmState::toUiState)
@@ -97,36 +97,45 @@ class ChatScreenViewModel(
 	) {
 		val selfNickname = nicknameRepository.getNickname()
 
-		_state.update {
-			it.copy(
-				isLoading = true,
-				selfNickname = selfNickname,
-			)
+		viewModelScope.launch {
+			_state.update {
+				it.copy(
+					isLoading = !workerStateHandle.isWaiting(_state.value.chatId),
+					selfNickname = selfNickname,
+				)
+			}
 		}
 
 		viewModelScope.launch {
-			chatRepository.connectionState.collect { connectionState ->
+			subscribeToChatUseCase(_state.value.chatId).collect { event ->
+				if (event !is SubscribeToChatUseCaseEvent.New && event !is SubscribeToChatUseCaseEvent.Stored) {
+					logger.d(tag = "ChatScreenViewModel", event.toString())
+				}
+
+				handleDecodedChatEvent(
+					event = event,
+					onWaitEvent = onWaitEvent,
+					onNewMessage = onNewMessage
+				)
+			}
+		}
+
+		viewModelScope.launch {
+			workerStateHandle.connectionState.collect { connectionState ->
 				_state.update {
 					it.copy(connectionState = connectionState)
 				}
 			}
 		}
-
-		viewModelScope.launch {
-			subscribeToChatUseCase(chatId = _state.value.chatId, scope = viewModelScope)
-				.collect { event ->
-					handleDecodedChatEvent(event, onWaitEvent, onNewMessage)
-				}
-		}
 	}
 
 	private fun handleDecodedChatEvent(
-		event: DecodedChatEvent,
+		event: SubscribeToChatUseCaseEvent,
 		onWaitEvent: () -> Unit,
 		onNewMessage: () -> Unit
 	) {
 		when (event) {
-			is DecodedChatEvent.Stored -> {
+			is SubscribeToChatUseCaseEvent.Stored -> {
 				_state.update {
 					it.copy(
 						messages = event.messages.mapNotNull { message ->
@@ -142,12 +151,17 @@ class ChatScreenViewModel(
 				}
 			}
 
-			is DecodedChatEvent.New -> {
+			is SubscribeToChatUseCaseEvent.New -> {
 				onNewMessage()
-				updateMessagesWithNewMessage(event.message.toMessage(_state.value.selfNickname))
+
+				event.message
+					.map { it.toMessage(_state.value.selfNickname) }
+					.forEach {
+						updateMessagesWithNewMessage(it)
+					}
 			}
 
-			is DecodedChatEvent.Wait -> {
+			is SubscribeToChatUseCaseEvent.Wait -> {
 				_state.update {
 					it.copy(
 						isLoading = false
@@ -157,13 +171,10 @@ class ChatScreenViewModel(
 				onWaitEvent()
 			}
 
-			is DecodedChatEvent.Connected -> Unit
-
-			is DecodedChatEvent.Disconnected -> Unit
-
-			is DecodedChatEvent.Reconnection -> Unit
-
-			is DecodedChatEvent.Unknown -> Unit
+			is SubscribeToChatUseCaseEvent.Connected -> Unit
+			is SubscribeToChatUseCaseEvent.Disconnected -> Unit
+			is SubscribeToChatUseCaseEvent.Reconnection -> Unit
+			is SubscribeToChatUseCaseEvent.Unknown -> Unit
 		}
 	}
 
