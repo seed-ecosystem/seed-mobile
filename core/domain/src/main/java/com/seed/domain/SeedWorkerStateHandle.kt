@@ -2,6 +2,8 @@ package com.seed.domain
 
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.model.MessageContent
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +54,8 @@ fun SeedWorkerStateHandle(
 ): SeedWorkerStateHandle {
 	val events = MutableSharedFlow<WorkerStateHandleEvent>()
 	val waitingChatIds = mutableListOf<String>()
-	val accumulatedMessages = mutableMapOf<String, MutableList<WorkerEvent.New>>()
+
+	val accumulatedMessageDefers = mutableMapOf<String, MutableList<Deferred<MessageContent>>>()
 
 	return object : SeedWorkerStateHandle {
 		override val connectionState: StateFlow<SocketConnectionState> = worker.connectionState
@@ -71,56 +74,65 @@ fun SeedWorkerStateHandle(
 						is WorkerEvent.Disconnected -> events.emit(WorkerStateHandleEvent.Disconnected)
 						is WorkerEvent.Reconnection -> events.emit(WorkerStateHandleEvent.Reconnection)
 
-						is WorkerEvent.New -> {
-							if (waitingChatIds.contains(event.chatId)) {
+						is WorkerEvent.DeferredNewEvent -> {
+							if (!waitingChatIds.contains(event.chatId)) {
 								logger.d(
 									tag = "SeedWorkerStateHandle",
-									message = "Emitting after waiting ${event.chatId}"
+									message = "Adding deferred chat event"
 								)
 
-								events.emit(
-									WorkerStateHandleEvent.New(
-										chatId = event.chatId,
-										messages = listOf(event.message)
-									)
-								)
+								val deferList = accumulatedMessageDefers.getOrPut(event.chatId) {
+									mutableListOf()
+								}
+								deferList.add(event.deferredEvent)
 							} else {
 								logger.d(
 									tag = "SeedWorkerStateHandle",
-									message = "Accumulating event with nonce ${event.message.nonce}"
+									message = "Start emitting after Wait"
 								)
 
-								val list =
-									accumulatedMessages.getOrPut(event.chatId) { mutableListOf() }
-								list.add(event)
+								val awaited = event.deferredEvent.await()
+								if (awaited is MessageContent.RegularMessage) {
+									events.emit(
+										WorkerStateHandleEvent.New(
+											chatId = event.chatId,
+											messages = listOf(awaited)
+										)
+									)
+								}
 							}
-
-// TODO							events.emit(
-//								WorkerStateHandleEvent.New(
-//									chatId = event.chatId,
-//									messages = listOf(event.message)
-//								)
-//							)
 						}
 
 						is WorkerEvent.Wait -> {
-							val messages = accumulatedMessages[event.chatId] ?: emptyList()
+							logger.d(
+								tag = "SeedWorkerStateHandle",
+								message = ""
+							)
+
+							val awaitedMessages =
+								accumulatedMessageDefers[event.chatId]
+									?.toList()
+									?.awaitAll()
+									?.filterIsInstance<MessageContent.RegularMessage>()
+									?.sortedBy { it.nonce }
 
 							logger.d(
 								tag = "SeedWorkerStateHandle",
-								message = "Emitting list of accumulated messages after wait event for ${event.chatId}"
+								message = "Emitting list of accumulated messages on Wait event for ${event.chatId}\n" +
+										"List (${awaitedMessages?.size ?: 0} elements)"
 							)
 
-							events.emit(
-								WorkerStateHandleEvent.New(
-									chatId = event.chatId,
-									messages = messages
-										.sortedBy { it.message.nonce }
-										.map { it.message }
+							awaitedMessages?.let {
+								events.emit(
+									WorkerStateHandleEvent.New(
+										chatId = event.chatId,
+										messages = awaitedMessages
+											.map { it }
+									)
 								)
-							)
+							}
 
-							accumulatedMessages.remove(event.chatId)
+							accumulatedMessageDefers.remove(event.chatId)
 							waitingChatIds.add(event.chatId)
 
 							events.emit(WorkerStateHandleEvent.Wait(event.chatId))

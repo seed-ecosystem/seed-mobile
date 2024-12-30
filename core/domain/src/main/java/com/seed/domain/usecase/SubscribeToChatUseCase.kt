@@ -42,8 +42,6 @@ class SubscribeToChatUseCase(
 		chatId: String
 	): Flow<SubscribeToChatUseCaseEvent> {
 		return flow {
-			// TODO: solve with stored messages
-
 			val messages = chatRepository.getMessages(chatId)
 				.sortedBy { it.nonce }
 

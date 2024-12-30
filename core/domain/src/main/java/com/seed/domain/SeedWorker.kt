@@ -6,15 +6,18 @@ import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.model.ApiEvent
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.GetMessageKeyUseCase
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 sealed interface WorkerEvent {
-	data class New(
+	data class DeferredNewEvent(
 		val chatId: String,
-		val message: MessageContent.RegularMessage,
+		val deferredEvent: Deferred<MessageContent>
 	) : WorkerEvent
 
 	data class Wait(val chatId: String) : WorkerEvent
@@ -62,7 +65,7 @@ fun SeedWorker(
 
 		suspend fun decryptNewEvent(
 			apiEvent: ApiEvent.New,
-		): WorkerEvent {
+		): MessageContent {
 			logger.d(
 				tag = "SeedWorker",
 				message = "start decoding"
@@ -72,7 +75,7 @@ fun SeedWorker(
 
 			if (messageKey == null) {
 				logger.d(tag = "SeedWorker", message = "chatKey is null for $apiEvent")
-				return WorkerEvent.Unknown(apiEvent.nonce)
+				return MessageContent.UnknownMessage(apiEvent.nonce)
 			}
 
 			val decodeResult = coder.decodeChatUpdate(
@@ -85,21 +88,13 @@ fun SeedWorker(
 			if (decodeResult == null) {
 				logger.d(tag = "SeedWorker", message = "Unable to decode $apiEvent")
 
-				return WorkerEvent.Unknown(apiEvent.nonce)
+				return MessageContent.UnknownMessage(apiEvent.nonce)
 			}
 
-			logger.d(
-				tag = "SeedWorker",
-				message = "Decoded: $decodeResult"
-			)
-
-			return WorkerEvent.New(
-				chatId = apiEvent.chatId,
-				message = MessageContent.RegularMessage(
-					nonce = apiEvent.nonce,
-					title = decodeResult.title,
-					text = decodeResult.text
-				)
+			return MessageContent.RegularMessage(
+				nonce = apiEvent.nonce,
+				title = decodeResult.title,
+				text = decodeResult.text
 			)
 		}
 
@@ -118,9 +113,17 @@ fun SeedWorker(
 				is ApiEvent.Unknown -> _events.emit(WorkerEvent.Unknown(apiEvent.nonce))
 
 				is ApiEvent.New -> {
-					getScope().launch {
-						_events.emit(decryptNewEvent(apiEvent))
+					val deferred = getScope().async(
+						start = CoroutineStart.LAZY
+					) {
+						decryptNewEvent(apiEvent)
 					}
+					_events.emit(
+						WorkerEvent.DeferredNewEvent(
+							chatId = apiEvent.chatId,
+							deferredEvent = deferred
+						)
+					)
 				}
 			}
 		}

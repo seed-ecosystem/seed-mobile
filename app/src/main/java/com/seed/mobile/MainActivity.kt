@@ -13,6 +13,8 @@ import com.seed.domain.SeedWorker
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.api.SeedApi
 import com.seed.domain.data.ChatRepository
+import com.seed.domain.data.ChatsRepository
+import com.seed.domain.manageSubscriptions
 import com.seed.domain.saveNewMessages
 import com.seed.main.di.mainModule
 import com.seed.mobile.di.appModule
@@ -78,17 +80,24 @@ class MainActivity : ComponentActivity() {
 		worker.initializeWorker()
 		workerStateHandle.initializeWorkerStateHandle()
 
-		lifecycleScope.launch {
-			workerStateHandle.subscribe(
-				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",
-				nonce = 2370
-			)
-		}
+		manageSubscriptions(
+			worker = worker,
+			chatsRepository = koin.get<ChatsRepository>(),
+			chatRepository = koin.get<ChatRepository>(),
+			scope = lifecycleScope,
+		)
+
+//		lifecycleScope.launch {
+//			workerStateHandle.subscribe(
+//				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",
+//				nonce = 2370
+//			)
+//		}
 
 		lifecycleScope.launch {
 			saveNewMessages(
 				chatRepository = chatRepository,
-				worker = worker,
+				worker = workerStateHandle,
 			)
 		}
 	}

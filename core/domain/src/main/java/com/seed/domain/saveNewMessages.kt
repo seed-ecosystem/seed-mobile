@@ -4,14 +4,17 @@ import com.seed.domain.data.ChatRepository
 
 suspend fun saveNewMessages(
 	chatRepository: ChatRepository,
-	worker: SeedWorker,
+	worker: SeedWorkerStateHandle,
 ) {
 	worker.events.collect { event ->
-		if (event is WorkerEvent.New) {
-			chatRepository.addMessage(
-				chatId = event.chatId,
-				message = event.message,
-			)
+		if (event is WorkerStateHandleEvent.New) {
+			event.messages.forEach {
+
+				chatRepository.addMessage(
+					chatId = event.chatId,
+					message = it,
+				)
+			}
 		}
 	}
 }

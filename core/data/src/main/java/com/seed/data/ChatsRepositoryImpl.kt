@@ -10,6 +10,7 @@ import com.seed.persistence.db.dbo.ChatKeyDbo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 
 class ChatsRepositoryImpl(
@@ -20,6 +21,12 @@ class ChatsRepositoryImpl(
 	override suspend fun getAll(): Flow<List<Chat>> = withContext(Dispatchers.IO) {
 		return@withContext chatDao.getAll()
 			.map { it.map(ChatDbo::toChat) }
+	}
+
+	override suspend fun getAllChatsList(): List<Chat> = withContext(Dispatchers.IO) {
+		return@withContext chatDao
+			.getAllList()
+			.map(ChatDbo::toChat)
 	}
 
 	override suspend fun add(key: String, keyNonce: Int, name: String) {

@@ -14,6 +14,9 @@ interface ChatDao {
 	@Query("SELECT * FROM chatdbo")
 	fun getAll(): Flow<List<ChatDbo>>
 
+	@Query("SELECT * FROM chatdbo")
+	fun getAllList(): List<ChatDbo>
+
 	@Query("SELECT * FROM chatdbo WHERE chatId = :chatId")
 	fun getById(chatId: String): ChatDbo?
 
