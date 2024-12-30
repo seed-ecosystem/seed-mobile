@@ -1,3 +1,5 @@
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
 	repositories {
 		google {
@@ -20,10 +22,13 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "mobile"
+
+includeBuild("build-logic")
 include(":app")
 
 include(":core:domain")
 include(":core:uikit")
+include(":umbrella")
 
 include(":feature:main")
 include(":core:data")
