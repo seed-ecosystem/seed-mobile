@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.model.Chat
+import com.seed.domain.usecase.AddChatUseCase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,7 +31,7 @@ private data class ChatImportScreenVmState(
 }
 
 class ChatImportScreenViewModel(
-	private val chatsRepository: ChatsRepository
+	private val addChatUseCase: AddChatUseCase,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatImportScreenVmState())
 
@@ -55,10 +56,11 @@ class ChatImportScreenViewModel(
 		onFailure: () -> Unit
 	) {
 		viewModelScope.launch {
-			chatsRepository.add(
+			addChatUseCase(
 				key = _state.value.keyValue,
 				keyNonce = 0, // TODO
-				name = "Chat-${Random.nextInt(1, 1000)}",
+				name = "beta chat",
+				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",
 			)
 
 			onSuccess()

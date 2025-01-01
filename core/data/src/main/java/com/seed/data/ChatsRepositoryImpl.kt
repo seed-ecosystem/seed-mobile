@@ -10,7 +10,6 @@ import com.seed.persistence.db.dbo.ChatKeyDbo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 
 class ChatsRepositoryImpl(
@@ -29,21 +28,19 @@ class ChatsRepositoryImpl(
 			.map(ChatDbo::toChat)
 	}
 
-	override suspend fun add(key: String, keyNonce: Int, name: String) {
-		val tempChatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=" // TODO
-
+	override suspend fun add(chatId: String, key: String, keyNonce: Int, name: String) {
 		withContext(Dispatchers.IO) {
 			chatKeyDao.set(
 				key = ChatKeyDbo(
 					key = key,
 					nonce = keyNonce,
-					chatId = tempChatId,
+					chatId = chatId,
 				)
 			)
 
 			chatDao.insert(
 				ChatDbo(
-					chatId = tempChatId,
+					chatId = chatId,
 					chatKey = key,
 					chatName = name
 				)
