@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.swiftexport.ExperimentalSwiftExportDsl
 
 plugins {
-    id("module-convention")
+    id("mobile-module-convention")
 }
 
 val deps = listOf<Any>()

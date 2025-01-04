@@ -3,7 +3,6 @@ import Umbrella
 
 struct ContentView: View {
 
-    @State private var showContent = false
     var body: some View {
         VStack(spacing: 8) {
           Text("Module B: \(helloKotlin())")
@@ -13,8 +12,6 @@ struct ContentView: View {
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
+#Preview {
+    ContentView()
 }
