@@ -1,7 +1,6 @@
 package com.seed.crypto
 
-import com.seed.crypto.helpers.AesDecodingHelper
-import com.seed.crypto.helpers.AesEncodingHelper
+import com.seed.crypto.helpers.AesHelper
 import com.seed.crypto.helpers.HmacHelper
 import com.seed.crypto.serial.DecryptedMessageContent
 import com.seed.domain.Logger
@@ -20,9 +19,6 @@ internal data class EncodeResult(
 )
 
 fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
-	val hmacHelper = HmacHelper()
-	val decodingHelper = AesDecodingHelper()
-	val encodingHelper = AesEncodingHelper()
 
 	val json = Json { ignoreUnknownKeys = true }
 
@@ -33,7 +29,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		key: String
 	): ChatUpdateDecodeResult? = withContext(Dispatchers.Default) {
 		try {
-			val decodeResult = decodingHelper.decode(
+			val decodeResult = AesHelper.decode(
 				encryptedBase64 = content,
 				base64Iv = contentIv,
 				base64Key = key
@@ -47,7 +43,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 				}
 			}
 
-			val verify = hmacHelper.verifyHmacSha256(
+			val verify = HmacHelper.verifyHmacSha256(
 				data = "SIGNATURE:" + decodeResult.getOrNull(),
 				base64Key = key,
 				base64Signature = signature
@@ -103,12 +99,12 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		content: String,
 		key: String,
 	): EncodeResult? {
-		val signature = hmacHelper.hmacSha256(
+		val signature = HmacHelper.hmacSha256(
 			data = "SIGNATURE:$content",
 			base64Key = key,
 		)
 
-		val encryptedContent = encodingHelper.encrypt(
+		val encryptedContent = AesHelper.encode(
 			plainText = content,
 			base64Key = key
 		)
@@ -123,7 +119,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 	}
 
 	override suspend fun deriveNextKey(key: String): String = withContext(Dispatchers.Default) {
-		return@withContext hmacHelper.hmacSha256(
+		return@withContext HmacHelper.hmacSha256(
 			data = "NEXT-KEY",
 			base64Key = key
 		)

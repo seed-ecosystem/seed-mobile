@@ -5,8 +5,14 @@ data class EncryptResult(
 	val encryptedContent: String,
 )
 
-expect class AesEncodingHelper() {
-	fun encrypt(
+expect object AesHelper {
+	fun decode(
+		encryptedBase64: String,
+		base64Iv: String,
+		base64Key: String
+	): Result<String>
+
+	fun encode(
 		plainText: String,
 		base64Key: String
 	): Result<EncryptResult>
