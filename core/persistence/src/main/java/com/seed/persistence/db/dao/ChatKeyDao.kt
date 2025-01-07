@@ -11,6 +11,9 @@ interface ChatKeyDao {
 	@Insert(onConflict = OnConflictStrategy.REPLACE)
 	fun set(key: ChatKeyDbo)
 
+	@Insert(onConflict = OnConflictStrategy.REPLACE)
+	fun insertAll(keys: List<ChatKeyDbo>)
+
 	@Query("SELECT * FROM ChatKeyDbo WHERE chatId = :chatId AND nonce = :nonce")
 	suspend fun getByNonce(chatId: String, nonce: Int): ChatKeyDbo?
 

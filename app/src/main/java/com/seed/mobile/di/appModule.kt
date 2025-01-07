@@ -7,6 +7,7 @@ import com.seed.data.ChatKeyRepositoryImpl
 import com.seed.data.ChatRepositoryImpl
 import com.seed.data.ChatsRepositoryImpl
 import com.seed.data.NicknameRepositoryImpl
+import com.seed.domain.KeyManager
 import com.seed.domain.Logger
 import com.seed.domain.SeedWorker
 import com.seed.domain.SeedWorkerStateHandle
@@ -28,6 +29,8 @@ val appModule = module {
 	single { SendMessageUseCase(get(), get(), get(), get(), get()) }
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get(),get()) }
+
+	single<KeyManager> { KeyManager(get(), get(), get()) }
 
 	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get()) }
 	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
@@ -57,7 +60,7 @@ val appModule = module {
 	}
 
 	single<SeedWorkerStateHandle> {
-		SeedWorkerStateHandle(get(), get(), get())
+		SeedWorkerStateHandle(get(), get(), get(), get())
 	}
 
 	single<Logger> { LoggerImpl() }

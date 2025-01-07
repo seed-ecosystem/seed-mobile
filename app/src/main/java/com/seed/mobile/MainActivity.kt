@@ -15,7 +15,6 @@ import com.seed.domain.api.SeedApi
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.manageSubscriptions
-import com.seed.domain.saveNewMessages
 import com.seed.main.di.mainModule
 import com.seed.mobile.di.appModule
 import com.seed.persistence.di.persistenceModule
@@ -87,18 +86,11 @@ class MainActivity : ComponentActivity() {
 			scope = lifecycleScope,
 		)
 
-//		lifecycleScope.launch {
-//			workerStateHandle.subscribe(
-//				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",
-//				nonce = 2370
-//			)
-//		}
-
 		lifecycleScope.launch {
-			saveNewMessages(
-				chatRepository = chatRepository,
-				worker = workerStateHandle,
-			)
+//			saveNewMessages(
+//				chatRepository = chatRepository,
+//				worker = workerStateHandle,
+//			)
 		}
 	}
 }

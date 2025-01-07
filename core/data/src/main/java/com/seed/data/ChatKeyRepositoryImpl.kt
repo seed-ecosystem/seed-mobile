@@ -11,6 +11,20 @@ import kotlinx.coroutines.withContext
 class ChatKeyRepositoryImpl(
 	private val chatKeyDao: ChatKeyDao,
 ) : ChatKeyRepository {
+	override suspend fun insertKeys(chatId: String, keys: List<Pair<String, Int>>) =
+		withContext(Dispatchers.IO) {
+			val resultingList = keys
+				.map {
+					ChatKeyDbo(
+						chatId = chatId,
+						key = it.first,
+						nonce = it.second,
+					)
+				}
+
+			chatKeyDao.insertAll(resultingList)
+		}
+
 	override suspend fun insertChatKey(chatId: String, nonce: Int, key: String) =
 		withContext(Dispatchers.IO) {
 			chatKeyDao.set(

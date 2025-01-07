@@ -1,6 +1,7 @@
 package com.seed.domain
 
 import com.seed.domain.api.SocketConnectionState
+import com.seed.domain.data.ChatKeyRepository
 import com.seed.domain.model.MessageContent
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
@@ -49,13 +50,15 @@ interface SeedWorkerStateHandle {
 
 fun SeedWorkerStateHandle(
 	worker: SeedWorker,
+	keyManager: KeyManager,
 	getScope: GetApplicationCoroutineScope,
 	logger: Logger,
 ): SeedWorkerStateHandle {
 	val events = MutableSharedFlow<WorkerStateHandleEvent>()
 	val waitingChatIds = mutableListOf<String>()
 
-	val accumulatedMessageDefers = mutableMapOf<String, MutableList<Deferred<MessageContent>>>()
+	val accumulatedMessageDefers =
+		mutableMapOf<String, MutableList<Pair<Int, Deferred<MessageContent>>>>()
 
 	return object : SeedWorkerStateHandle {
 		override val connectionState: StateFlow<SocketConnectionState> = worker.connectionState
@@ -75,7 +78,8 @@ fun SeedWorkerStateHandle(
 						is WorkerEvent.Reconnection -> events.emit(WorkerStateHandleEvent.Reconnection)
 
 						is WorkerEvent.DeferredNewEvent -> {
-							if (!waitingChatIds.contains(event.chatId)) {
+							val chatIsWaiting = waitingChatIds.contains(event.chatId)
+							if (!chatIsWaiting) {
 								logger.d(
 									tag = "SeedWorkerStateHandle",
 									message = "Adding deferred chat event"
@@ -84,7 +88,7 @@ fun SeedWorkerStateHandle(
 								val deferList = accumulatedMessageDefers.getOrPut(event.chatId) {
 									mutableListOf()
 								}
-								deferList.add(event.deferredEvent)
+								deferList.add(Pair(event.nonce, event.deferredEvent))
 							} else {
 								logger.d(
 									tag = "SeedWorkerStateHandle",
@@ -106,15 +110,28 @@ fun SeedWorkerStateHandle(
 						is WorkerEvent.Wait -> {
 							logger.d(
 								tag = "SeedWorkerStateHandle",
-								message = ""
+								message = "Got Wait event from worker"
+							)
+
+							val maxNonce: Int = accumulatedMessageDefers[event.chatId]
+								?.maxBy { it.first }
+								?.first
+								?: 1
+
+							keyManager.deriveKeysTillNonce(
+								chatId = event.chatId,
+								tillNonce = maxNonce,
 							)
 
 							val awaitedMessages =
 								accumulatedMessageDefers[event.chatId]
 									?.toList()
+									?.map { it.second }
 									?.awaitAll()
 									?.filterIsInstance<MessageContent.RegularMessage>()
 									?.sortedBy { it.nonce }
+
+							keyManager.clearBuffer(chatId = event.chatId)
 
 							logger.d(
 								tag = "SeedWorkerStateHandle",

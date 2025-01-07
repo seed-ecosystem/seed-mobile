@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 sealed interface WorkerEvent {
 	data class DeferredNewEvent(
 		val chatId: String,
+		val nonce: Int,
 		val deferredEvent: Deferred<MessageContent>
 	) : WorkerEvent
 
@@ -53,7 +54,7 @@ interface SeedWorker {
 fun SeedWorker(
 	coder: SeedCoder,
 	seedApi: SeedApi,
-	getMessageKeyUseCase: GetMessageKeyUseCase,
+	keyManager: KeyManager,
 	getScope: GetApplicationCoroutineScope,
 	logger: Logger,
 ): SeedWorker {
@@ -71,7 +72,7 @@ fun SeedWorker(
 				message = "start decoding"
 			)
 
-			val messageKey = getMessageKeyUseCase(apiEvent.chatId, apiEvent.nonce)
+			val messageKey = keyManager.getKey(apiEvent.chatId, apiEvent.nonce)
 
 			if (messageKey == null) {
 				logger.d(tag = "SeedWorker", message = "chatKey is null for $apiEvent")
@@ -121,6 +122,7 @@ fun SeedWorker(
 					_events.emit(
 						WorkerEvent.DeferredNewEvent(
 							chatId = apiEvent.chatId,
+							nonce = apiEvent.nonce,
 							deferredEvent = deferred
 						)
 					)
@@ -147,7 +149,7 @@ fun SeedWorker(
 		) {
 			// todo result return & implement different nonce attempts
 
-			val messageKey = getMessageKeyUseCase(chatId, messageContent.nonce) ?: return
+			val messageKey = keyManager.getKey(chatId, messageContent.nonce) ?: return
 
 			val encodingResult = coder.encodeMessage(
 				chatId = chatId,
