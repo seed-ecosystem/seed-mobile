@@ -24,15 +24,21 @@ dependencyResolutionManagement {
 rootProject.name = "mobile"
 
 includeBuild("build-logic")
-include(":app")
-include(":core:uikit")
-include(":core:persistence")
 
-include(":core:domain")
 include(":umbrella")
 
-include(":feature:main")
-include(":core:data")
-include(":core:crypto")
-include(":core:api")
-include(":feature:settings")
+include(":android:app")
+include(":android:uikit")
+include(":android:persistence")
+include(":android:data")
+include(":android:feature:main")
+include(":android:feature:settings")
+
+include(":shared:domain")
+include(":shared:crypto")
+include(":shared:api")
+include(":shared:core")
+include(":shared:core-mobile")
+
+include(":shared:feature:main")
+
