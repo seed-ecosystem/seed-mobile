@@ -16,7 +16,7 @@ import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.manageSubscriptions
 import com.seed.domain.saveNewMessages
-import com.seed.shared.di.mainModule
+import com.seed.main.di.mainModule
 import com.seed.mobile.di.appModule
 import com.seed.persistence.di.persistenceModule
 import com.seed.settings.di.settingsModule

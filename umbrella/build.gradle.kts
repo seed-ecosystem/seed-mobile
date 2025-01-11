@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.swiftexport.ExperimentalSwiftExportDsl
-
 plugins {
     id("mobile-module-convention")
 }
@@ -7,27 +5,30 @@ plugins {
 val deps = listOf(
     libs.kotlinx.coroutines,
     libs.kotlinx.datetime,
-
     projects.shared.api,
     projects.shared.core,
     projects.shared.coreMobile,
     projects.shared.crypto,
     projects.shared.domain,
-
     projects.shared.feature.main,
     // projects.shared.domain.settings,
 )
 
 dependencies {
-    deps.forEach(::api)
+    deps.forEach(::commonMainApi)
 }
 
 kotlin {
-    @OptIn(ExperimentalSwiftExportDsl::class)
-    swiftExport {
-        moduleName = "Umbrella"
-        flattenPackage = "com.seed.multiplatform.umbrella"
-        deps.forEach(::export)
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach {
+        it.binaries.framework {
+            baseName = "Umbrella"
+            deps.forEach(::export)
+            isStatic = true
+        }
     }
 }
 
