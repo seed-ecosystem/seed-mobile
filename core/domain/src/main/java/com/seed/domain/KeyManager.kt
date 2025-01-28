@@ -47,12 +47,13 @@ fun KeyManager(
 			val startTime = System.nanoTime()
 
 			val lastKey = chatKeyRepository.getLastChatKey(chatId) ?: return
+			val startKeyNonce = lastKey.keyNonce + 1
 
 			if (tillNonce <= lastKey.keyNonce) return
 
 			var previousKey = lastKey.key
 
-			for (nonce in lastKey.keyNonce..tillNonce) {
+			for (nonce in startKeyNonce..tillNonce) {
 				val result = coder.deriveNextKey(previousKey)
 
 				previousKey = result
