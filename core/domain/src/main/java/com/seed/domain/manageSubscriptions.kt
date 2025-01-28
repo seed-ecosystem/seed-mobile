@@ -14,8 +14,9 @@ fun manageSubscriptions(
 	scope.launch {
 		worker.events.collect { event ->
 			if (event !is WorkerEvent.Connected) return@collect
-
-			subscribeToEachChat(chatsRepository, chatRepository, worker)
+			scope.launch {
+				subscribeToEachChat(chatsRepository, chatRepository, worker)
+			}
 		}
 	}
 }
@@ -23,7 +24,7 @@ fun manageSubscriptions(
 private suspend fun subscribeToEachChat(
 	chatsRepository: ChatsRepository,
 	chatRepository: ChatRepository,
-	worker: SeedWorker
+	worker: SeedWorker,
 ) {
 	chatsRepository.getAllChatsList().forEach { chat ->
 		val lastChatNonce = chatRepository
