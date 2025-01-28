@@ -3,7 +3,6 @@ package com.seed.domain
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 
 fun manageSubscriptions(
@@ -30,7 +29,7 @@ private suspend fun subscribeToEachChat(
 		val lastChatNonce = chatRepository
 			.getMessages(chat.chatId)
 			.maxByOrNull { it.nonce }
-			?.nonce ?: 0
+			?.nonce ?: chat.firstChatKeyNonce
 
 		println("lastChatNonce $lastChatNonce")
 
