@@ -27,7 +27,7 @@ fun ChatImportRoute(
 				onFailure = {
 					Toast.makeText(
 						context,
-						"Failed to proceed with key",
+						"Failed to proceed with this string",
 						Toast.LENGTH_SHORT
 					).show()
 				}
