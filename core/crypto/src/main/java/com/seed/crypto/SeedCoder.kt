@@ -122,8 +122,8 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		}
 	}
 
-	override suspend fun deriveNextKey(key: String): String = withContext(Dispatchers.Default) {
-		return@withContext hmacHelper.hmacSha256(
+	override fun deriveNextKey(key: String): String {
+		return hmacHelper.hmacSha256(
 			data = "NEXT-KEY",
 			base64Key = key
 		)

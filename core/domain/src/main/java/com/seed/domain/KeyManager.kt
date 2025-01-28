@@ -2,6 +2,10 @@ package com.seed.domain
 
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatKeyRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.system.measureNanoTime
+import kotlin.system.measureTimeMillis
 
 interface KeyManager {
 	/**
@@ -38,27 +42,27 @@ fun KeyManager(
 ): KeyManager {
 	return object : KeyManager {
 		// TODO: use value objects
-		private val derivedKeyCache = mutableMapOf<Pair<String, Int>, String>()
+		private val derivedKeyCache = hashMapOf<Pair<String, Int>, String>()
 
 		override suspend fun deriveKeysTillNonce(
 			chatId: String,
 			tillNonce: Int
 		) {
-			val startTime = System.nanoTime()
-
 			val lastKey = chatKeyRepository.getLastChatKey(chatId) ?: return
 			val startKeyNonce = lastKey.keyNonce + 1
 
 			if (tillNonce <= lastKey.keyNonce) return
 
-			var previousKey = lastKey.key
+			withContext(Dispatchers.Default) {
+				var previousKey = lastKey.key
 
-			for (nonce in startKeyNonce..tillNonce) {
-				val result = coder.deriveNextKey(previousKey)
+				for (nonce in startKeyNonce..tillNonce) {
+					val result = coder.deriveNextKey(previousKey)
 
-				previousKey = result
+					previousKey = result
 
-				derivedKeyCache[chatId to nonce] = result
+					derivedKeyCache[chatId to nonce] = result
+				}
 			}
 
 			chatKeyRepository.insertKeys(
@@ -70,13 +74,6 @@ fun KeyManager(
 					.map { (chatIdWithNonce, key) ->
 						Pair(key, chatIdWithNonce.second)
 					}
-			)
-
-			val finalTime = System.nanoTime()
-
-			logger.d(
-				tag = "KeyManager",
-				message = "Done nonce calculations from ${lastKey.keyNonce} till $tillNonce by ${finalTime - startTime}ns"
 			)
 		}
 
@@ -125,7 +122,7 @@ fun KeyManager(
 			derivedKeyCache.clear()
 		}
 
-		private suspend fun deriveTillNonce(
+		private fun deriveTillNonce(
 			key: String,
 			keyNonce: Int,
 			nonce: Int,
