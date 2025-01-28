@@ -17,7 +17,7 @@ class ChatRepositoryImpl(
 	private val logger: Logger,
 ) : ChatRepository {
 	override suspend fun getMessages(chatId: String): List<MessageContent> =
-		chatEventDao.getAll()
+		chatEventDao.getAllByChatId(chatId)
 			.map {
 				MessageContent.RegularMessage(
 					nonce = it.nonce,
