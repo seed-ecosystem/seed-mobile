@@ -42,7 +42,8 @@ class ChatsRepositoryImpl(
 				ChatDbo(
 					chatId = chatId,
 					chatKey = key,
-					chatName = name
+					chatName = name,
+					firstChatKeyNonce = keyNonce,
 				)
 			)
 		}
@@ -55,5 +56,6 @@ class ChatsRepositoryImpl(
 
 private fun ChatDbo.toChat(): Chat = Chat(
 	chatId = this.chatId,
-	name = this.chatName
+	name = this.chatName,
+	firstChatKeyNonce = this.firstChatKeyNonce
 )
