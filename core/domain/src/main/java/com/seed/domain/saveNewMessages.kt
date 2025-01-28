@@ -8,13 +8,10 @@ suspend fun saveNewMessages(
 ) {
 	worker.events.collect { event ->
 		if (event is WorkerStateHandleEvent.New) {
-			event.messages.forEach {
-
-				chatRepository.addMessage(
-					chatId = event.chatId,
-					message = it,
-				)
-			}
+			chatRepository.addMessagesList(
+				chatId = event.chatId,
+				messages = event.messages
+			)
 		}
 	}
 }

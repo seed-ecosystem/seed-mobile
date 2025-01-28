@@ -30,5 +30,7 @@ interface ChatRepository {
 
 	suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage)
 
+	suspend fun addMessagesList(chatId: String, messages: List<MessageContent.RegularMessage>)
+
 	suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult
 }

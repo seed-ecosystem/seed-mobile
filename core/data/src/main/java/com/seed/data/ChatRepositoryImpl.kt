@@ -32,6 +32,15 @@ class ChatRepositoryImpl(
 		)
 	}
 
+	override suspend fun addMessagesList(
+		chatId: String,
+		messages: List<MessageContent.RegularMessage>
+	) {
+		chatEventDao.insertAll(
+			messages.map { it.toChatEventDbo(chatId) }
+		)
+	}
+
 	override suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult {
 		logger.d(
 			tag = "ChatRepository",

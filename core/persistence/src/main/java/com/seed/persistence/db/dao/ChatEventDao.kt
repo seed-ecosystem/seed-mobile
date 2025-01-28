@@ -11,6 +11,9 @@ interface ChatEventDao {
 	@Insert(onConflict = OnConflictStrategy.IGNORE)
 	suspend fun insert(message: ChatEventDbo)
 
+	@Insert(onConflict = OnConflictStrategy.IGNORE)
+	suspend fun insertAll(messages: List<ChatEventDbo>)
+
 	@Query("SELECT * FROM ChatEventDbo WHERE chatId = :chatId ORDER BY nonce")
 	suspend fun getAllByChatId(chatId: String): List<ChatEventDbo>
 

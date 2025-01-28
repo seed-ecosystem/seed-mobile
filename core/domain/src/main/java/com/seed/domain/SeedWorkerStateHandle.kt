@@ -1,7 +1,6 @@
 package com.seed.domain
 
 import com.seed.domain.api.SocketConnectionState
-import com.seed.domain.data.ChatKeyRepository
 import com.seed.domain.model.MessageContent
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
