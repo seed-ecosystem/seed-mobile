@@ -39,6 +39,7 @@ android {
 dependencies {
 	implementation(project(":core:uikit"))
 	implementation(project(":core:domain"))
+	implementation(project(":core:util"))
 
 	api(platform(libs.koin.bom))
 	api(libs.koin.core)
