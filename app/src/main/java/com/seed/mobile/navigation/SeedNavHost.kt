@@ -20,8 +20,10 @@ import com.seed.main.ChatImportRoute
 import com.seed.main.ChatListRoute
 import com.seed.main.ChatRoute
 import com.seed.main.ChatScreenInitialData
+import com.seed.main.presentation.chat.logic.ChatScreenViewModelOptions
 import com.seed.settings.SettingsRoute
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun SeedNavHost(
@@ -102,7 +104,14 @@ fun SeedNavHost(
 				onBackClick = {
 					navHostController.popBackStack()
 				},
-				vm = koinViewModel(),
+				vm = koinViewModel {
+					parametersOf(
+						ChatScreenViewModelOptions(
+							destination.chatName,
+							destination.chatId
+						)
+					)
+				},
 				modifier = commonModifier
 			)
 		}

@@ -32,10 +32,10 @@ fun ChatRoute(
 	val context = LocalContext.current
 
 	LaunchedEffect(Unit) {
-		vm.setInitialData(
-			chatName = initialData.chatName,
-			chatId = initialData.chatId,
-		)
+//		vm.setInitialData(
+//			chatName = initialData.chatName,
+//			chatId = initialData.chatId,
+//		)
 
 		vm.loadData(
 			onWaitEvent = {

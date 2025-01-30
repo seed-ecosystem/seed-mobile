@@ -4,21 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
 import com.seed.domain.SeedWorkerStateHandle
-import com.seed.domain.WorkerEvent
 import com.seed.domain.api.SocketConnectionState
-import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.NicknameRepository
-import com.seed.domain.model.DecodedChatEvent
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCaseEvent
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -31,7 +24,6 @@ private data class ChatScreenVmState(
 	val messages: List<Message>? = null,
 	val inputFieldValue: String = "",
 	val chatName: String = "",
-	val chatId: String = "",
 	val selfNickname: String? = null,
 	val isLoading: Boolean = false,
 	val isError: Boolean = false,
@@ -65,14 +57,20 @@ private data class ChatScreenVmState(
 	}
 }
 
+data class ChatScreenViewModelOptions(
+	val chatName: String,
+	val chatId: String,
+)
+
 class ChatScreenViewModel(
+	private val options: ChatScreenViewModelOptions,
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
 	private val workerStateHandle: SeedWorkerStateHandle,
 	private val nicknameRepository: NicknameRepository,
 	private val logger: Logger,
 ) : ViewModel() {
-	private val _state = MutableStateFlow(ChatScreenVmState())
+	private val _state = MutableStateFlow(ChatScreenVmState(chatName = options.chatName))
 
 	val state: StateFlow<ChatScreenUiState> = _state
 		.map(ChatScreenVmState::toUiState)
@@ -81,15 +79,6 @@ class ChatScreenViewModel(
 			SharingStarted.Eagerly,
 			ChatScreenUiState.Loading("", "", SocketConnectionState.DISCONNECTED)
 		)
-
-	fun setInitialData(chatName: String, chatId: String) {
-		_state.update {
-			it.copy(
-				chatName = chatName,
-				chatId = chatId,
-			)
-		}
-	}
 
 	fun loadData(
 		onWaitEvent: () -> Unit,
@@ -100,14 +89,14 @@ class ChatScreenViewModel(
 		viewModelScope.launch {
 			_state.update {
 				it.copy(
-					isLoading = !workerStateHandle.isWaiting(_state.value.chatId),
+					isLoading = !workerStateHandle.isWaiting(options.chatId),
 					selfNickname = selfNickname,
 				)
 			}
 		}
 
 		viewModelScope.launch {
-			subscribeToChatUseCase(_state.value.chatId).collect { event ->
+			subscribeToChatUseCase(options.chatId).collect { event ->
 				if (event !is SubscribeToChatUseCaseEvent.New && event !is SubscribeToChatUseCaseEvent.Stored) {
 					logger.d(tag = "ChatScreenViewModel", event.toString())
 				}
@@ -223,7 +212,7 @@ class ChatScreenViewModel(
 
 			viewModelScope.launch {
 				val sendMessageResult = sendMessageUseCase(
-					chatId = _state.value.chatId,
+					chatId = options.chatId,
 					messageText = messageText,
 					lastMessageNonce = lastMessageNonce,
 				)
