@@ -37,6 +37,14 @@ interface SeedSocket {
 	suspend fun disconnect()
 }
 
+internal sealed interface SessionState {
+	data object Disconnected : SessionState
+
+	data object Reconnecting : SessionState
+
+	data class Connected(val session: DefaultClientWebSocketSession) : SessionState
+}
+
 fun SeedSocket(
 	logger: Logger,
 	host: String,
@@ -48,7 +56,7 @@ fun SeedSocket(
 		install(Logging)
 	}
 
-	var websocketSession: DefaultClientWebSocketSession? = null
+	private val _sessionState = MutableStateFlow<SessionState>(SessionState.Disconnected)
 
 	private val _socketConnectionEvents = MutableSharedFlow<SocketEvent>()
 	override val socketConnectionEvents = _socketConnectionEvents
@@ -62,7 +70,6 @@ fun SeedSocket(
 	override fun initializeSocketConnection(coroutineScope: CoroutineScope) {
 		reconnectionJob?.cancel()
 		reconnectionJob = null
-		websocketSession = null
 		this.coroutineScope = coroutineScope
 
 		connect()
@@ -77,7 +84,7 @@ fun SeedSocket(
 			try {
 				logger.d(tag = "SeedSocket", message = "Started websocket session initialization…")
 
-				websocketSession =
+				val websocketSession =
 					client.webSocketSession(
 						block = {
 							url.protocol = URLProtocol.WSS
@@ -91,8 +98,9 @@ fun SeedSocket(
 
 				_socketConnectionEvents.emit(SocketEvent.Connected)
 				_connectionState.update { SocketConnectionState.CONNECTED }
+				_sessionState.value = SessionState.Connected(websocketSession)
 
-				websocketSession!!.incoming
+				websocketSession.incoming
 					.receiveAsFlow()
 					.filterIsInstance<Frame.Text>()
 					.filterNotNull()
@@ -110,6 +118,7 @@ fun SeedSocket(
 			} catch (ex: Exception) {
 				_connectionState.update { SocketConnectionState.DISCONNECTED }
 				_socketConnectionEvents.emit(SocketEvent.Disconnected)
+				_sessionState.value = SessionState.Disconnected
 
 				logger.e(
 					tag = "SeedSocket",
@@ -122,6 +131,7 @@ fun SeedSocket(
 				)
 
 				_connectionState.update { SocketConnectionState.RECONNECTING }
+				_sessionState.value = SessionState.Reconnecting
 				_socketConnectionEvents.emit(SocketEvent.Reconnection)
 
 				reconnect()
@@ -132,8 +142,7 @@ fun SeedSocket(
 	private suspend fun stop() {
 		logger.d(tag = "SeedSocket", "Closing websocket session…")
 
-		websocketSession?.close()
-		websocketSession = null
+		(_sessionState.value as? SessionState.Connected)?.session?.close()
 
 		_connectionState.update { SocketConnectionState.DISCONNECTED }
 		_socketConnectionEvents.emit(SocketEvent.Disconnected)
@@ -156,20 +165,20 @@ fun SeedSocket(
 
 	override suspend fun send(jsonContent: String): SocketSendResult {
 		try {
-			while (websocketSession == null) { // TODO: resolve this strange logic
-				delay(100)
+			val session = when (val state = _sessionState.value) {
+				is SessionState.Connected -> state.session
+
+				else -> {
+					logger.e(
+						tag = "SeedSocket",
+						message = "Can't send JSON because the session is disconnected"
+					)
+
+					return SocketSendResult.FAILURE
+				}
 			}
 
-			if (websocketSession == null) {
-				logger.e(
-					tag = "SeedSocket",
-					message = "Can't send JSON because websocket session is null"
-				)
-
-				return SocketSendResult.FAILURE
-			}
-
-			websocketSession?.send(Frame.Text(jsonContent))
+			session.send(Frame.Text(jsonContent))
 
 			logger.d(tag = "SeedSocket", message = "Sent JSON: $jsonContent")
 
