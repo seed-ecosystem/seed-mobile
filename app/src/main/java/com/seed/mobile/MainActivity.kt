@@ -87,13 +87,6 @@ class MainActivity : ComponentActivity() {
 			scope = lifecycleScope,
 		)
 
-//		lifecycleScope.launch {
-//			workerStateHandle.subscribe(
-//				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",
-//				nonce = 2370
-//			)
-//		}
-
 		lifecycleScope.launch {
 			saveNewMessages(
 				chatRepository = chatRepository,

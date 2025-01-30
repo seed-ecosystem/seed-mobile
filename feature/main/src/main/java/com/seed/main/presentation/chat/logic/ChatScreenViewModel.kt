@@ -242,7 +242,7 @@ class ChatScreenViewModel(
 		}
 	}
 
-	private fun getLastMessageNonce() = _state.value.messages?.first {
+	private fun getLastMessageNonce() = _state.value.messages?.firstOrNull {
 		val isSendFailed = if (it is Message.SelfMessage) it.isSendFailed else false
 		!isSendFailed
 	}?.nonce

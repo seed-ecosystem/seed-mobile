@@ -2,10 +2,7 @@ package com.seed.main.presentation.chatimport.logic
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seed.domain.data.ChatsRepository
-import com.seed.domain.model.Chat
 import com.seed.domain.usecase.AddChatUseCase
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +10,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.random.Random
+import java.net.URLDecoder
 
 private data class ChatImportScreenVmState(
 	val keyValue: String = "",
@@ -55,15 +52,53 @@ class ChatImportScreenViewModel(
 		onSuccess: () -> Unit,
 		onFailure: () -> Unit
 	) {
-		viewModelScope.launch {
-			addChatUseCase(
-				key = _state.value.keyValue,
-				keyNonce = 0, // TODO
-				name = "beta chat",
-				chatId = "bHKhl2cuQ01pDXSRaqq/OMJeDFJVNIY5YuQB2w7ve+c=",
-			)
+		try {
+			val parsedChat = parseChatUri(_state.value.keyValue)
 
-			onSuccess()
+			viewModelScope.launch {
+				addChatUseCase(
+					key = parsedChat.privateKey,
+					keyNonce = parsedChat.nonce,
+					name = parsedChat.chatName,
+					chatId = parsedChat.chatId
+				)
+
+				onSuccess()
+			}
+		} catch (ex: IllegalArgumentException) {
+			onFailure()
+			return
 		}
 	}
+}
+
+data class ParsedChatUri(
+	val chatName: String,
+	val privateKey: String,
+	val nonce: Int,
+	val chatId: String,
+	val serverAddress: String
+)
+
+fun parseChatUri(encodedUri: String): ParsedChatUri {
+	val parts = encodedUri.split("#/import/").getOrNull(1)?.split("/")
+		?: throw IllegalArgumentException("Invalid URI format")
+
+	if (parts.size != 5) {
+		throw IllegalArgumentException("URI does not contain the expected number of components")
+	}
+
+	val chatName = URLDecoder.decode(parts[0], "UTF-8")
+	val chatId = URLDecoder.decode(parts[1], "UTF-8")
+	val privateKey = URLDecoder.decode(parts[2], "UTF-8")
+	val nonce = URLDecoder.decode(parts[3], "UTF-8")
+	val serverAddress = URLDecoder.decode(parts[4], "UTF-8")
+
+	return ParsedChatUri(
+		chatName = chatName,
+		privateKey = privateKey,
+		nonce = nonce.toInt(),
+		chatId = chatId,
+		serverAddress = serverAddress
+	)
 }

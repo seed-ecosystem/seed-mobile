@@ -27,5 +27,5 @@ interface SeedCoder {
 		previousKey: String,
 	): MessageEncodeResult?
 
-	suspend fun deriveNextKey(key: String): String
+	fun deriveNextKey(key: String): String
 }
