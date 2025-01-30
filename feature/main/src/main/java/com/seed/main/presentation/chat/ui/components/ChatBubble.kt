@@ -152,7 +152,8 @@ private fun Modifier.borderByAuthorType(message: Message): Modifier {
 private fun ChatBubblePreviewOthers() {
 	ChatBubble(
 		message = Message.OthersMessage(
-			nonce = 220,
+			localNonce = 220,
+			serverNonce = 1,
 			authorName = "Andrew",
 			messageText = LoremIpsum(2).values.first(),
 			dateTime = LocalDateTime.now()
@@ -165,7 +166,8 @@ private fun ChatBubblePreviewOthers() {
 private fun ChatBubblePreviewSelf() {
 	ChatBubble(
 		message = Message.SelfMessage(
-			nonce = 1,
+			localNonce = 1,
+			serverNonce = null,
 			authorName = "я",
 			messageText = "одногруппник работает на первой линии в b2b инфосек-конторе, иногда отвечает на тикеты прямо на парах. это милейшее зрелище, должен сказать: два взрослых человека на зарплате вежливо и предельно культурно обсуждают технические проблемы.",
 			dateTime = LocalDateTime.now()

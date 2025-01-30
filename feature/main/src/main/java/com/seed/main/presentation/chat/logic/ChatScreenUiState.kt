@@ -4,13 +4,19 @@ import com.seed.domain.api.SocketConnectionState
 import java.time.LocalDateTime
 
 sealed interface Message {
-	val nonce: Int
+//	val nonce: Int
+
+	val serverNonce: Int?
+	val localNonce: Int
+
 	val authorName: String
 	val messageText: String
 	val dateTime: LocalDateTime
 
 	data class SelfMessage(
-		override val nonce: Int,
+//		override val nonce: Int,
+		override val serverNonce: Int?,
+		override val localNonce: Int,
 		override val authorName: String,
 		override val messageText: String,
 		override val dateTime: LocalDateTime,
@@ -19,7 +25,9 @@ sealed interface Message {
 	) : Message
 
 	data class OthersMessage(
-		override val nonce: Int,
+//		override val nonce: Int,
+		override val serverNonce: Int,
+		override val localNonce: Int,
 		override val authorName: String,
 		override val messageText: String,
 		override val dateTime: LocalDateTime

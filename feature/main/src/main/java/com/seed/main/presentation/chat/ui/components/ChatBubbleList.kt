@@ -45,7 +45,7 @@ fun ChatBubbleList(
 //				}
 //			}
 
-			items(messages, key = { it.nonce }) { message ->
+			items(messages, key = { it.localNonce }) { message ->
 				Spacer(Modifier.height(8.dp))
 
 				Row(
