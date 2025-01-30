@@ -1,7 +1,14 @@
 package com.seed.mobile.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -24,6 +31,8 @@ fun SeedNavHost(
 	NavHost(
 		navController = navHostController,
 		startDestination = NavDestination.BottomBarDestinations,
+		enterTransition = { EnterTransition.None },
+		exitTransition = { ExitTransition.None },
 		modifier = modifier
 	) {
 		val commonModifier = Modifier
@@ -35,7 +44,14 @@ fun SeedNavHost(
 			composable<NavDestination.ChatListDestination> {
 				ChatListRoute(
 					goToChatImport = { navHostController.navigate(NavDestination.ChatImportDestination) },
-					goToChat = { navHostController.navigate(NavDestination.ChatDestination(chatId = it.chatId, chatName = it.chatName)) },
+					goToChat = {
+						navHostController.navigate(
+							NavDestination.ChatDestination(
+								chatId = it.chatId,
+								chatName = it.chatName
+							)
+						)
+					},
 					vm = koinViewModel(),
 					modifier = commonModifier
 				)
@@ -49,7 +65,33 @@ fun SeedNavHost(
 			}
 		}
 
-		composable<NavDestination.ChatDestination> { backStackEntry ->
+		composable<NavDestination.ChatDestination>(
+			enterTransition = {
+				fadeIn(
+					animationSpec = tween(
+						100,
+						easing = LinearEasing
+					)
+				) + slideInHorizontally(
+					animationSpec = tween(
+						100,
+						easing = LinearEasing
+					),
+					initialOffsetX = { it / 4 }
+				)
+			},
+			exitTransition = {
+				fadeOut(
+					animationSpec = tween(100, easing = LinearEasing)
+				) + slideOutHorizontally(
+					tween(
+						100,
+						easing = LinearEasing
+					),
+					targetOffsetX = { it / 8 }
+				)
+			},
+		) { backStackEntry ->
 			val destination = backStackEntry.toRoute<NavDestination.ChatDestination>()
 
 			ChatRoute(
