@@ -3,7 +3,9 @@ package com.seed.main.presentation.chatimport.ui.states
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,7 +35,8 @@ fun IdleState(
 		modifier = modifier
 	) {
 		Column(
-			modifier = Modifier,
+			modifier = Modifier
+				.padding(horizontal = 16.dp),
 			horizontalAlignment = Alignment.CenterHorizontally
 		) {
 			Icon(
@@ -55,6 +58,20 @@ fun IdleState(
 			OutlinedTextField(
 				value = state.keyValue,
 				onValueChange = onKeyValueUpdate,
+				minLines = 5,
+				maxLines = 5,
+				textStyle = MaterialTheme.typography.bodySmall,
+				placeholder = {
+					Text(
+						text = "https://seed-ecosystem.github.io/seed-web/#/import/...",
+						style = MaterialTheme.typography.bodySmall,
+					)
+				},
+				supportingText = {
+					Text("Get from Seed Web")
+				},
+				modifier = Modifier
+					.fillMaxWidth()
 			)
 
 			Spacer(Modifier.height(16.dp))
