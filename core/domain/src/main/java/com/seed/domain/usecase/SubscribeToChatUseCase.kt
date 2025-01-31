@@ -17,7 +17,7 @@ sealed interface SubscribeToChatUseCaseEvent {
 
 	data class New(
 		val chatId: String,
-		val message: List<MessageContent.RegularMessage>,
+		val messages: List<MessageContent.RegularMessage>,
 	) : SubscribeToChatUseCaseEvent
 
 	data class Wait(val chatId: String) : SubscribeToChatUseCaseEvent

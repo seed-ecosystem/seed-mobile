@@ -151,11 +151,7 @@ class ChatScreenViewModel(
 			is SubscribeToChatUseCaseEvent.New -> {
 				onNewMessage()
 
-				event.message
-					.map { it.toMessage(getLastLocalNonce() + 1, _state.value.selfNickname) }
-					.forEach {
-						addNewMessage(it)
-					}
+				handleNewMessagesAdd(event)
 			}
 
 			is SubscribeToChatUseCaseEvent.Wait -> {
@@ -175,9 +171,32 @@ class ChatScreenViewModel(
 		}
 	}
 
+	private fun handleNewMessagesAdd(event: SubscribeToChatUseCaseEvent.New) {
+		if (_state.value.messages.isNullOrEmpty()) {
+			val messages = event.messages
+				.mapIndexed { index: Int, message: MessageContent.RegularMessage ->
+					message.toMessage(
+						localNonce = index,
+						_state.value.selfNickname
+					)
+				}
+				.reversed()
+
+			_state.update {
+				it.copy(messages = messages)
+			}
+		} else {
+			event.messages
+				.map { it.toMessage(getLastLocalNonce() + 1, _state.value.selfNickname) }
+				.forEach {
+					addNewMessage(it)
+				}
+		}
+	}
+
 	private fun getLastLocalNonce(): Int {
 		return _state.value.messages
-			?.maxBy { it.localNonce }
+			?.maxByOrNull { it.localNonce }
 			?.localNonce
 			?: 0
 	}
