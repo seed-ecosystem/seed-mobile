@@ -7,6 +7,7 @@ import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.NicknameRepository
 import com.seed.domain.model.MessageContent
+import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCaseEvent
@@ -182,6 +183,8 @@ class ChatScreenViewModel(
 	}
 
 	private fun addNewMessage(new: Message) {
+		if (_state.value.messages?.any { it.serverNonce == new.serverNonce } == true) return
+
 		val newMessages = _state.value.messages?.let { oldMessages ->
 			listOf(new) + oldMessages
 		} ?: listOf(new)
@@ -197,56 +200,61 @@ class ChatScreenViewModel(
 		}
 	}
 
-	fun sendMessage(onSuccess: () -> Unit, onFailure: () -> Unit) {
-		viewModelScope.launch {
+	fun sendMessage(onMessageAdd: () -> Unit) {
+		if (_state.value.inputFieldValue.isBlank()) return
 
+		val messageText = _state.value.inputFieldValue
+		val messageLocalNonce = getLastLocalNonce() + 1
+
+		_state.update { it.copy(inputFieldValue = "") }
+
+		addNewMessage(
+			Message.SelfMessage(
+				localNonce = messageLocalNonce,
+				serverNonce = null,
+				authorName = "",
+				messageText = messageText,
+				dateTime = LocalDateTime.now(), // TODO
+				isSending = true,
+				isSendFailed = false
+			)
+		)
+
+		viewModelScope.launch {
+			val sendResult = sendMessageUseCase(
+				chatId = options.chatId,
+				messageText = messageText,
+			)
+
+			updateMessageSendState(
+				localNonce = messageLocalNonce,
+				serverNonce = if (sendResult is SendMessageResult.Success) sendResult.newServerNonce else null,
+				isFailed = sendResult is SendMessageResult.Failure
+			)
 		}
 
-		TODO()
+		onMessageAdd()
 	}
 
-//	fun sendMessage(onSuccess: () -> Unit, onFailure: () -> Unit) {
-//		viewModelScope.launch {
-//			if (_state.value.inputFieldValue.isBlank()) return@launch
-//
-//			val lastMessageNonce = getLastMessageNonce() ?: return@launch
-//			val newMessageNonce = lastMessageNonce + 1
-//			val messageText = _state.value.inputFieldValue
-//
-//			updateMessagesWithNewMessage(
-//				newMessage = Message.SelfMessage(
-////					nonce = newMessageNonce,
-//					localNonce = newMessageNonce,
-//					serverNonce = null,
-//					authorName = "",
-//					messageText = messageText,
-//					dateTime = LocalDateTime.now(),
-//					isSending = true,
-//					isSendFailed = false,
-//				)
-//			)
-//
-//			viewModelScope.launch {
-//				val sendMessageResult = sendMessageUseCase(
-//					chatId = options.chatId,
-//					messageText = messageText,
-//					lastMessageNonce = lastMessageNonce,
-//				)
-//
-//				updateMessageSendState(
-//					nonce = newMessageNonce,
-//					isFailed = sendMessageResult is SendMessageResult.Failure
-//				)
-//			}
-//
-//			_state.update {
-//				it.copy(inputFieldValue = "")
-//			}
-//
-//			onSuccess()
-//		}
-//	}
+	private fun updateMessageSendState(localNonce: Int, serverNonce: Int?, isFailed: Boolean) {
+		val messages = _state.value.messages
 
+		val newMessages = messages?.map { message ->
+			if (message is Message.SelfMessage && message.localNonce == localNonce) {
+				message.copy(
+					serverNonce = serverNonce,
+					isSending = false,
+					isSendFailed = isFailed,
+				)
+			} else message
+		}
+
+		_state.update {
+			it.copy(
+				messages = newMessages
+			)
+		}
+	}
 }
 
 fun MessageContent.RegularMessage.toMessage(

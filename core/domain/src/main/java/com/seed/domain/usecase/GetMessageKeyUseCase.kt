@@ -42,7 +42,7 @@ class GetMessageKeyUseCase(
 		}
 	}
 
-	private suspend fun deriveTillNonce(
+	private fun deriveTillNonce(
 		key: String,
 		keyNonce: Int,
 		nonce: Int

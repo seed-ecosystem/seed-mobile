@@ -1,6 +1,5 @@
 package com.seed.main
 
-import android.widget.Toast
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -9,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.seed.main.presentation.chat.logic.ChatScreenUiState
 import com.seed.main.presentation.chat.logic.ChatScreenViewModel
 import com.seed.main.presentation.chat.ui.ChatScreen
 import kotlinx.coroutines.launch
@@ -54,12 +52,11 @@ fun ChatRoute(
 		onBackClick = onBackClick,
 		onSend = {
 			vm.sendMessage(
-				onSuccess = {
+				onMessageAdd = {
 					coroutineScope.launch {
 						chatBubbleListState.animateScrollToItem(0)
 					}
 				},
-				onFailure = {}
 			)
 		},
 		onInputValueUpdate = vm::updateInputValue,
