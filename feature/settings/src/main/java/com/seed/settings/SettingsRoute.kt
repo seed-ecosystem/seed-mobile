@@ -6,6 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.seed.settings.presentation.logic.SettingsScreenViewModel
+import com.seed.settings.presentation.serverList
 import com.seed.settings.presentation.ui.SettingsScreen
 
 @Composable
@@ -22,6 +23,9 @@ fun SettingsRoute(
 	SettingsScreen(
 		nickname = state.nicknameValue,
 		onNicknameChange = vm::onNicknameChange,
+		onServerOptionChoice = vm::updateServerOption,
+		selectedServer = state.selectedServer,
+		serverOptions = serverList,
 		modifier = modifier,
 	)
 }

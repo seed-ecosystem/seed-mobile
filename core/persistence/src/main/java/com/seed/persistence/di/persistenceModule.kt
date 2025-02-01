@@ -5,6 +5,7 @@ import com.seed.persistence.db.SeedDatabase
 import com.seed.persistence.db.dao.ChatDao
 import com.seed.persistence.db.dao.ChatKeyDao
 import com.seed.persistence.db.dao.ChatEventDao
+import com.seed.persistence.pref.MainServerSharedPreferences
 import com.seed.persistence.pref.NicknameSharedPreferences
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module
@@ -35,5 +36,9 @@ val persistenceModule = module {
 
 	factory<NicknameSharedPreferences> {
 		NicknameSharedPreferences(get())
+	}
+
+	factory<MainServerSharedPreferences> {
+		MainServerSharedPreferences(get())
 	}
 }

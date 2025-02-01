@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seed.domain.Logger
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.api.SocketConnectionState
-import com.seed.domain.data.NicknameRepository
+import com.seed.domain.data.SettingsRepository
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
@@ -67,7 +67,7 @@ class ChatScreenViewModel(
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
 	private val workerStateHandle: SeedWorkerStateHandle,
-	private val nicknameRepository: NicknameRepository,
+	private val settingsRepository: SettingsRepository,
 	private val logger: Logger,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatScreenVmState(chatName = options.chatName))
@@ -84,7 +84,7 @@ class ChatScreenViewModel(
 		onWaitEvent: () -> Unit,
 		onNewMessage: () -> Unit,
 	) {
-		val selfNickname = nicknameRepository.getNickname()
+		val selfNickname = settingsRepository.getNickname()
 
 		viewModelScope.launch {
 			_state.update {

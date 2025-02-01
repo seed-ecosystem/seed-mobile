@@ -3,7 +3,7 @@ package com.seed.domain.usecase
 import com.seed.domain.Logger
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
-import com.seed.domain.data.NicknameRepository
+import com.seed.domain.data.SettingsRepository
 import com.seed.domain.data.SendMessageDto
 
 sealed interface SendMessageResult {
@@ -22,14 +22,14 @@ class SendMessageUseCase(
 	private val seedCoder: SeedCoder,
 	private val logger: Logger,
 	private val getMessageKey: GetMessageKeyUseCase,
-	private val nicknameRepository: NicknameRepository,
+	private val settingsRepository: SettingsRepository,
 	private val nonceAttempts: Int,
 ) {
 	suspend operator fun invoke(
 		chatId: String,
 		messageText: String,
 	): SendMessageResult {
-		val author = nicknameRepository.getNickname().let {
+		val author = settingsRepository.getNickname().let {
 			if (it.isNullOrEmpty()) "Anonymous android user" else it
 		}
 
