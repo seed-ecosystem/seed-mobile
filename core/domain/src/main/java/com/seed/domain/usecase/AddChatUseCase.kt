@@ -12,12 +12,14 @@ class AddChatUseCase(
 		keyNonce: Int,
 		name: String,
 		chatId: String,
+		serverUrl: String,
 	) {
 		chatRepository.add(
 			key = key,
 			keyNonce = keyNonce,
 			name = name,
 			chatId = chatId,
+			serverUrl = serverUrl,
 		)
 
 		workerStateHandle.subscribe(

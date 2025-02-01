@@ -10,4 +10,5 @@ data class ChatDbo(
 	val chatKey: String,
 	val firstChatKeyNonce: Int,
 	val chatName: String,
+	val serverUrl: String,
 )

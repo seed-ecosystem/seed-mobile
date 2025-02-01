@@ -60,7 +60,8 @@ class ChatImportScreenViewModel(
 					key = parsedChat.privateKey,
 					keyNonce = parsedChat.nonce,
 					name = parsedChat.chatName,
-					chatId = parsedChat.chatId
+					chatId = parsedChat.chatId,
+					serverUrl = parsedChat.serverAddress
 				)
 
 				onSuccess()

@@ -8,7 +8,7 @@ interface ChatsRepository {
 
 	suspend fun getAllChatsList(): List<Chat>
 
-	suspend fun add(chatId: String, key: String, keyNonce: Int, name: String)
+	suspend fun add(chatId: String, key: String, keyNonce: Int, name: String, serverUrl: String)
 
 	suspend fun delete(chatId: String)
 }

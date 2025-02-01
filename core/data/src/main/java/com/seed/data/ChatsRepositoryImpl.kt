@@ -28,7 +28,7 @@ class ChatsRepositoryImpl(
 			.map(ChatDbo::toChat)
 	}
 
-	override suspend fun add(chatId: String, key: String, keyNonce: Int, name: String) {
+	override suspend fun add(chatId: String, key: String, keyNonce: Int, name: String, serverUrl: String) {
 		withContext(Dispatchers.IO) {
 			chatKeyDao.set(
 				key = ChatKeyDbo(
@@ -44,6 +44,7 @@ class ChatsRepositoryImpl(
 					chatKey = key,
 					chatName = name,
 					firstChatKeyNonce = keyNonce,
+					serverUrl = serverUrl,
 				)
 			)
 		}
