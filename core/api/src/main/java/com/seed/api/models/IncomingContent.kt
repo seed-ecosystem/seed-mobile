@@ -35,7 +35,7 @@ sealed interface EventContent {
 	) : EventContent {
 		@Serializable
 		data class NewMessage(
-			val chatId: String,
+			val queueId: String,
 			val content: String,
 			val contentIV: String,
 			val nonce: Int,
@@ -47,6 +47,13 @@ sealed interface EventContent {
 	@SerialName("wait")
 	data class Wait(
 		override val type: String,
-		val chatId: String,
+		val queueId: String,
+	) : EventContent
+
+	@Serializable
+	@SerialName("disconnected")
+	data class Disconnected(
+		override val type: String,
+		val url: String,
 	) : EventContent
 }

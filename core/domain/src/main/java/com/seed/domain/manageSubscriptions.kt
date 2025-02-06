@@ -3,6 +3,7 @@ package com.seed.domain
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 fun manageSubscriptions(
@@ -15,6 +16,7 @@ fun manageSubscriptions(
 		worker.events.collect { event ->
 			if (event !is WorkerEvent.Connected) return@collect
 			scope.launch {
+				delay(1500)
 				subscribeToEachChat(chatsRepository, chatRepository, worker)
 			}
 		}
@@ -34,6 +36,10 @@ private suspend fun subscribeToEachChat(
 
 		println("lastChatNonce $lastChatNonce")
 
-		val subcriptionResult = worker.subscribe(chat.chatId, lastChatNonce) // TODO
+		val subscriptionResult = worker.subscribe(
+			chat.chatId,
+			lastChatNonce,
+			chat.serverUrl,
+		) // TODO
 	}
 }

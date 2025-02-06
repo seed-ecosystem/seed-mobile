@@ -2,6 +2,7 @@ package com.seed.domain.usecase
 
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.data.ChatsRepository
+import com.seed.domain.values.ServerUrl
 
 class AddChatUseCase(
 	private val chatRepository: ChatsRepository,
@@ -25,6 +26,7 @@ class AddChatUseCase(
 		workerStateHandle.subscribe(
 			chatId = chatId,
 			nonce = keyNonce,
+			serverUrl = ServerUrl(serverUrl),
 		)
 	}
 }

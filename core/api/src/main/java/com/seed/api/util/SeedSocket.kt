@@ -1,6 +1,7 @@
 package com.seed.api.util
 
 import com.seed.domain.Logger
+import com.seed.domain.SocketSendResult
 import com.seed.domain.api.SocketConnectionState
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -27,12 +28,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 interface SeedSocket {
-	val socketConnectionEvents: SharedFlow<SocketEvent>
+	val events: SharedFlow<SocketEvent>
 	val connectionState: StateFlow<SocketConnectionState>
 
 	suspend fun send(jsonContent: String): SocketSendResult
 
-	fun initializeSocketConnection(coroutineScope: CoroutineScope)
+	fun initializeSocketConnection(
+		host: String,
+		path: String,
+		coroutineScope: CoroutineScope,
+	)
 
 	suspend fun disconnect()
 }
@@ -47,8 +52,6 @@ internal sealed interface SessionState {
 
 fun SeedSocket(
 	logger: Logger,
-	host: String,
-	path: String,
 	reconnectionIntervalMillis: Long,
 ) = object : SeedSocket {
 	private val client = HttpClient(OkHttp) {
@@ -58,8 +61,8 @@ fun SeedSocket(
 
 	private val _sessionState = MutableStateFlow<SessionState>(SessionState.Disconnected)
 
-	private val _socketConnectionEvents = MutableSharedFlow<SocketEvent>()
-	override val socketConnectionEvents = _socketConnectionEvents
+	private val _events = MutableSharedFlow<SocketEvent>()
+	override val events = _events
 
 	private val _connectionState = MutableStateFlow(SocketConnectionState.DISCONNECTED)
 	override val connectionState: StateFlow<SocketConnectionState> = _connectionState
@@ -67,23 +70,25 @@ fun SeedSocket(
 	var coroutineScope: CoroutineScope? = null
 	var reconnectionJob: Job? = null
 
-	override fun initializeSocketConnection(coroutineScope: CoroutineScope) {
+	override fun initializeSocketConnection(
+		host: String,
+		path: String,
+		coroutineScope: CoroutineScope,
+	) {
 		reconnectionJob?.cancel()
 		reconnectionJob = null
 		this.coroutineScope = coroutineScope
 
-		connect()
+		connect(host, path)
 	}
 
 	override suspend fun disconnect() {
 		stop()
 	}
 
-	private fun connect() {
+	private fun connect(host: String, path: String) {
 		coroutineScope?.launch {
 			try {
-				logger.d(tag = "SeedSocket", message = "Started websocket session initialization…")
-
 				val websocketSession =
 					client.webSocketSession(
 						block = {
@@ -94,9 +99,9 @@ fun SeedSocket(
 						},
 					)
 
-				logger.d(tag = "SeedSocket", message = "Websocket session initialized successfully")
+				logger.d(tag = "SeedSocket", message = "WebSocket session initialized successfully with $host$path")
 
-				_socketConnectionEvents.emit(SocketEvent.Connected)
+				_events.emit(SocketEvent.Connected)
 				_connectionState.update { SocketConnectionState.CONNECTED }
 				_sessionState.value = SessionState.Connected(websocketSession)
 
@@ -105,11 +110,14 @@ fun SeedSocket(
 					.filterIsInstance<Frame.Text>()
 					.filterNotNull()
 					.collect { data ->
-						logger.d(tag = "SeedSocket", message = "Received data from websocket: ${data.readText()}")
+						logger.d(
+							tag = "SeedSocket",
+							message = "Received data from websocket: ${data.readText()}"
+						)
 
 						val message = data.readText()
 
-						_socketConnectionEvents.emit(
+						_events.emit(
 							SocketEvent.IncomingContent(
 								content = message
 							)
@@ -117,38 +125,33 @@ fun SeedSocket(
 					}
 			} catch (ex: Exception) {
 				_connectionState.update { SocketConnectionState.DISCONNECTED }
-				_socketConnectionEvents.emit(SocketEvent.Disconnected)
+				_events.emit(SocketEvent.Disconnected)
 				_sessionState.value = SessionState.Disconnected
 
 				logger.e(
 					tag = "SeedSocket",
-					message = "Socket connection error: ${ex.message}"
-				)
-
-				logger.d(
-					tag = "SeedSocket",
-					message = "Socket reconnection in ${reconnectionIntervalMillis}ms",
+					message = "Socket connection error: ${ex.message}, reconnection in ${reconnectionIntervalMillis}ms"
 				)
 
 				_connectionState.update { SocketConnectionState.RECONNECTING }
 				_sessionState.value = SessionState.Reconnecting
-				_socketConnectionEvents.emit(SocketEvent.Reconnection)
+				_events.emit(SocketEvent.Reconnection)
 
-				reconnect()
+				reconnect(host, path)
 			}
 		}
 	}
 
 	private suspend fun stop() {
-		logger.d(tag = "SeedSocket", "Closing websocket session…")
-
 		(_sessionState.value as? SessionState.Connected)?.session?.close()
 
 		_connectionState.update { SocketConnectionState.DISCONNECTED }
-		_socketConnectionEvents.emit(SocketEvent.Disconnected)
+		_events.emit(SocketEvent.Disconnected)
+
+		logger.d(tag = "SeedSocket", "Closed websocket session")
 	}
 
-	private fun reconnect() {
+	private fun reconnect(host: String, path: String) {
 		reconnectionJob?.cancel()
 
 		logger.d(
@@ -159,7 +162,7 @@ fun SeedSocket(
 		reconnectionJob = coroutineScope?.launch {
 			stop()
 			delay(reconnectionIntervalMillis)
-			connect()
+			connect(host, path)
 		}
 	}
 

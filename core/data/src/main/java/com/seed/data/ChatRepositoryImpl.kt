@@ -7,6 +7,7 @@ import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.SendMessageDto
 import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.MessageContent
+import com.seed.domain.values.ServerUrl
 import com.seed.persistence.db.dao.ChatEventDao
 import com.seed.persistence.db.dbo.ChatEventDbo
 import com.seed.persistence.db.dbo.ChatEventType
@@ -53,6 +54,7 @@ class ChatRepositoryImpl(
 			contentIv = sendMessageDto.encryptedContentIv,
 			nonce = sendMessageDto.nonce,
 			signature = sendMessageDto.signature,
+			serverUrl = ServerUrl("https://api.meetacy.app/seed-go")
 		)
 
 		if (result is ApiResponse.Failure) {

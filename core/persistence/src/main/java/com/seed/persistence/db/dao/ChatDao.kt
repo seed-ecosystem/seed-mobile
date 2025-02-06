@@ -11,6 +11,9 @@ interface ChatDao {
 	@Insert
 	fun insert(chatDbo: ChatDbo)
 
+	@Query("SELECT DISTINCT serverUrl from ChatDbo")
+	suspend fun getDistinctServerUrls(): List<String>
+
 	@Query("SELECT * FROM chatdbo")
 	fun getAll(): Flow<List<ChatDbo>>
 

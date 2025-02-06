@@ -1,5 +1,7 @@
 package com.seed.domain.data
 
+import com.seed.domain.values.ServerUrl
+
 interface SettingsRepository {
 	fun setNickname(nickname: String)
 
@@ -7,5 +9,5 @@ interface SettingsRepository {
 
 	fun setMainServerUrl(url: String)
 
-	fun getMainServerUrl(): String?
+	fun getMainServerUrl(): ServerUrl?
 }

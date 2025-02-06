@@ -2,6 +2,7 @@ package com.seed.domain
 
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.model.MessageContent
+import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -42,6 +43,7 @@ interface SeedWorkerStateHandle {
 	suspend fun subscribe(
 		chatId: String,
 		nonce: Int,
+		serverUrl: ServerUrl,
 	)
 
 	suspend fun isWaiting(chatId: String): Boolean
@@ -165,8 +167,8 @@ fun SeedWorkerStateHandle(
 			messageContent: MessageContent.RegularMessage
 		) = worker.sendMessage(chatId, messageContent)
 
-		override suspend fun subscribe(chatId: String, nonce: Int) =
-			worker.subscribe(chatId, nonce)
+		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl) =
+			worker.subscribe(chatId, nonce, serverUrl)
 
 		override suspend fun isWaiting(chatId: String): Boolean =
 			waitingChatIds.contains(chatId)

@@ -1,6 +1,7 @@
 package com.seed.mobile.di
 
 import com.seed.api.SeedApi
+import com.seed.api.SeedEngine
 import com.seed.api.util.SeedSocket
 import com.seed.crypto.SeedCoder
 import com.seed.data.ChatKeyRepositoryImpl
@@ -9,6 +10,7 @@ import com.seed.data.ChatsRepositoryImpl
 import com.seed.data.SettingsRepositoryImpl
 import com.seed.domain.KeyManager
 import com.seed.domain.Logger
+import com.seed.domain.SeedEngine
 import com.seed.domain.SeedWorker
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.api.SeedApi
@@ -21,6 +23,7 @@ import com.seed.domain.usecase.AddChatUseCase
 import com.seed.domain.usecase.GetMessageKeyUseCase
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
+import com.seed.domain.values.ServerUrl
 import com.seed.mobile.LoggerImpl
 import org.koin.dsl.module
 
@@ -28,12 +31,12 @@ val appModule = module {
 	single { SubscribeToChatUseCase(get(), get(), get()) }
 	single { SendMessageUseCase(get(), get(), get(), get(), get(), nonceAttempts = 50) }
 	factory { GetMessageKeyUseCase(get(), get()) }
-	factory { AddChatUseCase(get(),get()) }
+	factory { AddChatUseCase(get(), get()) }
 
 	single<KeyManager> { KeyManager(get(), get(), get()) }
 
 	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get()) }
-	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get(), get()) }
+	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get()) }
 	factory<ChatKeyRepository> { ChatKeyRepositoryImpl(get()) }
 	factory<SettingsRepository> { SettingsRepositoryImpl(get(), get()) }
 
@@ -42,9 +45,17 @@ val appModule = module {
 	single<SeedSocket> {
 		SeedSocket(
 			logger = get(),
-			host = "api.meetacy.app",
-			path = "seed-go",
 			reconnectionIntervalMillis = 1000L,
+		)
+	}
+
+	single<SeedEngine> {
+		SeedEngine(
+			socket = get(),
+			settingsRepository = get(),
+			chatsRepository = get(),
+			defaultMainServerUrl = ServerUrl("https://api.meetacy.app/seed-go"),
+			pingIntervalMillis = 15000L,
 		)
 	}
 
@@ -52,6 +63,7 @@ val appModule = module {
 		SeedApi(
 			logger = get(),
 			socket = get(),
+			engine = get(),
 		)
 	}
 

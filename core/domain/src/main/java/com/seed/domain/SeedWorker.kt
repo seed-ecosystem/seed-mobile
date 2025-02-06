@@ -6,6 +6,7 @@ import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.model.ApiEvent
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.GetMessageKeyUseCase
+import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -48,6 +49,7 @@ interface SeedWorker {
 	suspend fun subscribe(
 		chatId: String,
 		nonce: Int,
+		serverUrl: ServerUrl,
 	)
 }
 
@@ -113,6 +115,11 @@ fun SeedWorker(
 
 				is ApiEvent.Unknown -> _events.emit(WorkerEvent.Unknown(apiEvent.nonce))
 
+				is ApiEvent.ServerDisconnect -> {
+					// TODO
+					throw NotImplementedError("server disconnect")
+				}
+
 				is ApiEvent.New -> {
 					val deferred = getScope().async(
 						start = CoroutineStart.LAZY
@@ -164,11 +171,12 @@ fun SeedWorker(
 				content = encodingResult.content,
 				contentIv = encodingResult.contentIv,
 				signature = encodingResult.signature,
+				serverUrl = ServerUrl("https://api.meetacy.app/seed-go")
 			)
 		}
 
-		override suspend fun subscribe(chatId: String, nonce: Int) {
-			seedApi.subscribeToChat(chatId, nonce)
+		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl) {
+			seedApi.subscribeToChat(chatId, nonce, serverUrl)
 		}
 	}
 }

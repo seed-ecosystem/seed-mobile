@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 data class SubscribeRequest(
 	val type: String,
 	val nonce: Int,
-	val chatId: String,
+	val queueId: String,
 )

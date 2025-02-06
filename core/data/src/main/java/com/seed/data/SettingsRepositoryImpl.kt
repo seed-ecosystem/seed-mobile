@@ -1,6 +1,7 @@
 package com.seed.data
 
 import com.seed.domain.data.SettingsRepository
+import com.seed.domain.values.ServerUrl
 import com.seed.persistence.pref.MainServerSharedPreferences
 import com.seed.persistence.pref.NicknameSharedPreferences
 
@@ -20,7 +21,7 @@ class SettingsRepositoryImpl(
 		mainServerSharedPreferences.setMainServerUrl(url)
 	}
 
-	override fun getMainServerUrl(): String? {
-		return mainServerSharedPreferences.getMainServerUrl()
+	override fun getMainServerUrl(): ServerUrl? {
+		return mainServerSharedPreferences.getMainServerUrl()?.let { ServerUrl(it) }
 	}
 }

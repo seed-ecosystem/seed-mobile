@@ -5,17 +5,16 @@ import com.seed.api.models.IncomingContent
 import com.seed.api.models.SendMessageRequest
 import com.seed.api.models.SubscribeRequest
 import com.seed.api.util.SeedSocket
-import com.seed.api.util.SocketEvent
-import com.seed.api.util.SocketSendResult
+import com.seed.domain.EngineEvent
+import com.seed.domain.SocketSendResult
 import com.seed.domain.Logger
+import com.seed.domain.SeedEngine
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedApi
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.model.ApiEvent
-import kotlinx.coroutines.CoroutineExceptionHandler
+import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,24 +22,27 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-fun SeedApi(logger: Logger, socket: SeedSocket): SeedApi {
+fun SeedApi(
+	logger: Logger,
+	socket: SeedSocket,
+	engine: SeedEngine,
+): SeedApi {
 	val responseQueue: MutableList<(IncomingContent.Response) -> Unit> = mutableListOf()
 
 	return object : SeedApi {
 		private val _apiEvents = MutableSharedFlow<ApiEvent>()
 		override val apiEvents: SharedFlow<ApiEvent> = _apiEvents
 
-		override val connectionState: StateFlow<SocketConnectionState> = socket.connectionState
+		override val connectionState: StateFlow<SocketConnectionState> = engine.connectionState
 
 		override fun launchConnection(coroutineScope: CoroutineScope) {
 			coroutineScope.launch {
-				socket.socketConnectionEvents.collect { socketEvent ->
+				engine.events.collect { socketEvent ->
 					when (socketEvent) {
-						is SocketEvent.IncomingContent -> {
+						is EngineEvent.IncomingContent -> {
 							val incomingMessage = parseSocketEvent(socketEvent)
 
 							if (incomingMessage is IncomingContent.Response) {
@@ -57,23 +59,23 @@ fun SeedApi(logger: Logger, socket: SeedSocket): SeedApi {
 							}
 						}
 
-						is SocketEvent.Reconnection -> {
+						is EngineEvent.Reconnection -> {
 							_apiEvents.emit(ApiEvent.Reconnection)
 						}
 
-						SocketEvent.Connected -> _apiEvents.emit(ApiEvent.Connected)
+						EngineEvent.Connected -> _apiEvents.emit(ApiEvent.Connected)
 
-						SocketEvent.Disconnected -> _apiEvents.emit(ApiEvent.Disconnected)
+						EngineEvent.Disconnected -> _apiEvents.emit(ApiEvent.Disconnected)
 					}
 				}
 			}
 		}
 
 		override suspend fun stopConnection() {
-			socket.disconnect()
+			engine.stop()
 		}
 
-		private fun parseSocketEvent(incomingContent: SocketEvent.IncomingContent): IncomingContent? {
+		private fun parseSocketEvent(incomingContent: EngineEvent.IncomingContent): IncomingContent? {
 			return try {
 				Json.decodeFromString<IncomingContent>(incomingContent.content)
 			} catch (ex: SerializationException) {
@@ -84,6 +86,7 @@ fun SeedApi(logger: Logger, socket: SeedSocket): SeedApi {
 
 		override suspend fun sendMessage(
 			chatId: String,
+			serverUrl: ServerUrl,
 			content: String,
 			contentIv: String,
 			nonce: Int,
@@ -99,11 +102,12 @@ fun SeedApi(logger: Logger, socket: SeedSocket): SeedApi {
 				)
 			)
 
-			val socketSendResult = socket.send(jsonRequest)
+			val sendResult = engine.send(serverUrl, jsonRequest)
+//			val socketSendResult = socket.send(jsonRequest)
 
-			if (socketSendResult == SocketSendResult.FAILURE) {
-				return ApiResponse.Failure()
-			}
+//			if (sendResult == SocketSendResult.FAILURE) {
+//				return ApiResponse.Failure()
+//			}
 
 			logger.d(
 				tag = "SeedMessagingApi",
@@ -123,19 +127,22 @@ fun SeedApi(logger: Logger, socket: SeedSocket): SeedApi {
 			}
 		}
 
-		override suspend fun subscribeToChat(chatId: String, nonce: Int): ApiResponse<Unit> {
+		override suspend fun subscribeToChat(chatId: String, nonce: Int, serverUrl: ServerUrl): ApiResponse<Unit> {
 			val subscribeRequest = SubscribeRequest(
 				type = "subscribe",
-				chatId = chatId,
-				nonce = nonce
+				queueId = chatId,
+				nonce = nonce,
 			)
 			val jsonRequest = Json.encodeToString(subscribeRequest)
 
-			val socketSendResult = socket.send(jsonRequest)
+			val sendResult = engine.send( // TODO
+				serverUrl = serverUrl,
+				jsonRequest = jsonRequest,
+			)
 
-			if (socketSendResult == SocketSendResult.FAILURE) {
-				return ApiResponse.Failure()
-			}
+//			if (engineSendResult == SocketSendResult.FAILURE) {
+//				return ApiResponse.Failure()
+//			}
 
 			logger.d(
 				tag = "SeedMessagingApi",
@@ -163,7 +170,7 @@ private fun IncomingContent.SubscribeEvent.toChatEvent(): ApiEvent {
 			val newMessage = this.event.message
 
 			ApiEvent.New(
-				chatId = newMessage.chatId,
+				chatId = newMessage.queueId,
 				encryptedContentBase64 = newMessage.content,
 				encryptedContentIv = newMessage.contentIV,
 				nonce = newMessage.nonce,
@@ -171,8 +178,14 @@ private fun IncomingContent.SubscribeEvent.toChatEvent(): ApiEvent {
 			)
 		}
 
+		is EventContent.Disconnected -> {
+			ApiEvent.ServerDisconnect(
+				url = ServerUrl(this.event.url)
+			)
+		}
+
 		is EventContent.Wait -> {
-			ApiEvent.Wait(this.event.chatId)
+			ApiEvent.Wait(this.event.queueId)
 		}
 	}
 }

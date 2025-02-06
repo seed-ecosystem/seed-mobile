@@ -39,7 +39,7 @@ class SettingsScreenViewModel(
 	fun loadData() {
 		val selectedServer: ServerOption? =
 			settingsRepository.getMainServerUrl()?.let { storedMainServerUrl ->
-				serverList.find { it.serverUrl == storedMainServerUrl }
+				serverList.find { it.serverUrl == storedMainServerUrl.value }
 			}
 
 		_state.update {

@@ -1,5 +1,7 @@
 package com.seed.domain.model
 
+import com.seed.domain.values.ServerUrl
+
 sealed interface ApiEvent {
 	data class New(
 		val chatId: String,
@@ -7,6 +9,10 @@ sealed interface ApiEvent {
 		val encryptedContentIv: String,
 		val nonce: Int,
 		val signature: String,
+	) : ApiEvent
+
+	data class ServerDisconnect(
+		val url: ServerUrl,
 	) : ApiEvent
 
 	data class Unknown(
