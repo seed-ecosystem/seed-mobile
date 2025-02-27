@@ -6,7 +6,6 @@ import com.seed.api.models.SendMessageRequest
 import com.seed.api.models.SubscribeRequest
 import com.seed.api.util.SeedSocket
 import com.seed.domain.EngineEvent
-import com.seed.domain.SocketSendResult
 import com.seed.domain.Logger
 import com.seed.domain.SeedEngine
 import com.seed.domain.api.ApiResponse
@@ -30,7 +29,7 @@ fun SeedApi(
 	socket: SeedSocket,
 	engine: SeedEngine,
 ): SeedApi {
-	val responseQueue: MutableList<(IncomingContent.Response) -> Unit> = mutableListOf()
+	val responseQueue: MutableList<(IncomingContent.IncomingResponse) -> Unit> = mutableListOf()
 
 	return object : SeedApi {
 		private val _apiEvents = MutableSharedFlow<ApiEvent>()
@@ -45,7 +44,7 @@ fun SeedApi(
 						is EngineEvent.IncomingContent -> {
 							val incomingMessage = parseSocketEvent(socketEvent)
 
-							if (incomingMessage is IncomingContent.Response) {
+							if (incomingMessage is IncomingContent.IncomingResponse) {
 								if (responseQueue.size > 0) {
 									responseQueue[0](incomingMessage)
 									responseQueue.removeAt(0)
@@ -79,7 +78,7 @@ fun SeedApi(
 			return try {
 				Json.decodeFromString<IncomingContent>(incomingContent.content)
 			} catch (ex: SerializationException) {
-				logger.e("SeedMessagingApi", "parseSocketEvent: Parsing error: ${ex.message}")
+				logger.e("SeedApi", "Parsing error: ${ex.message}")
 				null
 			}
 		}
@@ -110,18 +109,18 @@ fun SeedApi(
 //			}
 
 			logger.d(
-				tag = "SeedMessagingApi",
-				message = "sendMessage: Sent json: $jsonRequest"
+				tag = "SeedApi",
+				message = "Sent json: $jsonRequest"
 			)
 
 			return suspendCoroutine { continuation ->
 				responseQueue.add { response ->
 					logger.d(
-						tag = "SeedMessagingApi",
+						tag = "SeedApi",
 						message = "sendMessage: Response: $response",
 					)
 
-					if (response.status) continuation.resume(ApiResponse.Success(Unit))
+					if (response.response.status) continuation.resume(ApiResponse.Success(Unit))
 					else continuation.resume(ApiResponse.Failure())
 				}
 			}
@@ -135,7 +134,7 @@ fun SeedApi(
 			)
 			val jsonRequest = Json.encodeToString(subscribeRequest)
 
-			val sendResult = engine.send( // TODO
+			val sendResult = engine.send( // TODO: add handling of subscribe requests
 				serverUrl = serverUrl,
 				jsonRequest = jsonRequest,
 			)
@@ -145,18 +144,18 @@ fun SeedApi(
 //			}
 
 			logger.d(
-				tag = "SeedMessagingApi",
-				message = "subscribeToChat: Sent $jsonRequest"
+				tag = "SeedApi",
+				message = "Sent $jsonRequest"
 			)
 
 			return suspendCoroutine { continuation ->
 				responseQueue.add { response ->
 					logger.d(
-						tag = "SeedMessagingApi",
-						message = "subscribeToChat: Got response: $response"
+						tag = "SeedApi",
+						message = "Subscribe response: $response"
 					)
 
-					if (response.status) continuation.resume(ApiResponse.Success(Unit))
+					if (response.response.status) continuation.resume(ApiResponse.Success(Unit))
 					else continuation.resume(ApiResponse.Failure())
 				}
 			}

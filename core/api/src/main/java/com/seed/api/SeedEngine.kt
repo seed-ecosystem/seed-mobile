@@ -137,7 +137,11 @@ fun SeedEngine(
 			val serverUrls = chatsRepository.getAllServerUrls()
 
 			serverUrls.forEach { url: String ->
-				val request = json.encodeToString(ConnectForwardingRequest(url = url.replace("https", "wss")))
+				val request = json.encodeToString(
+					ConnectForwardingRequest(
+						url = url.replace("https", "wss"), // TODO: move this logic to the appropriate place
+					)
+				)
 
 				socket.send(request) // TODO: add handling for request responses
 			}
@@ -165,7 +169,7 @@ fun SeedEngine(
 
 		override suspend fun send(serverUrl: ServerUrl, jsonRequest: String) {
 			val forwardingRequest = ForwardingRequest(
-				url = serverUrl.value.replace("https", "wss"),
+				url = serverUrl.value.replace("https", "wss"), // TODO: move this logic to the appropriate place
 				request = json.parseToJsonElement(jsonRequest),
 			)
 			val forwardingRequestJson = json.encodeToString(forwardingRequest)

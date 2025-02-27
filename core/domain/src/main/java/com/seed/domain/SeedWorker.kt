@@ -69,15 +69,10 @@ fun SeedWorker(
 		suspend fun decryptNewEvent(
 			apiEvent: ApiEvent.New,
 		): MessageContent {
-			logger.d(
-				tag = "SeedWorker",
-				message = "start decoding"
-			)
-
 			val messageKey = keyManager.getKey(apiEvent.chatId, apiEvent.nonce)
 
 			if (messageKey == null) {
-				logger.d(tag = "SeedWorker", message = "chatKey is null for $apiEvent")
+				logger.e(tag = "SeedWorker", message = "chatKey is null for $apiEvent")
 				return MessageContent.UnknownMessage(apiEvent.nonce)
 			}
 
@@ -89,7 +84,7 @@ fun SeedWorker(
 			)
 
 			if (decodeResult == null) {
-				logger.d(tag = "SeedWorker", message = "Unable to decode $apiEvent")
+				logger.e(tag = "SeedWorker", message = "Unable to decode $apiEvent")
 
 				return MessageContent.UnknownMessage(apiEvent.nonce)
 			}
@@ -138,11 +133,6 @@ fun SeedWorker(
 		}
 
 		override fun initializeWorker() {
-			logger.d(
-				tag = "SeedWorker",
-				message = "initializeWorker"
-			)
-
 			getScope().launch {
 				seedApi.apiEvents.collect { apiEvent ->
 					handleApiEvent(apiEvent)

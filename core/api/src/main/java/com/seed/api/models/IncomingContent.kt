@@ -10,10 +10,15 @@ internal sealed interface IncomingContent {
 
 	@Serializable
 	@SerialName("response")
-	data class Response(
+	data class IncomingResponse(
 		override val type: String,
-		val status: Boolean,
-	) : IncomingContent
+		val response: Response,
+	) : IncomingContent {
+		@Serializable
+		data class Response(
+			val status: Boolean,
+		)
+	}
 
 	@Serializable
 	@SerialName("event")

@@ -54,7 +54,7 @@ val appModule = module {
 			socket = get(),
 			settingsRepository = get(),
 			chatsRepository = get(),
-			defaultMainServerUrl = ServerUrl("https://api.meetacy.app/seed-go"),
+			defaultMainServerUrl = ServerUrl("https://api.meetacy.app/seed-kt"),
 			pingIntervalMillis = 15000L,
 		)
 	}

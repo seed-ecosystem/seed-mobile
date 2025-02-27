@@ -99,8 +99,6 @@ fun SeedSocket(
 						},
 					)
 
-				logger.d(tag = "SeedSocket", message = "WebSocket session initialized successfully with $host$path")
-
 				_events.emit(SocketEvent.Connected)
 				_connectionState.update { SocketConnectionState.CONNECTED }
 				_sessionState.value = SessionState.Connected(websocketSession)
@@ -112,7 +110,7 @@ fun SeedSocket(
 					.collect { data ->
 						logger.d(
 							tag = "SeedSocket",
-							message = "Received data from websocket: ${data.readText()}"
+							message = "Received: ${data.readText()}"
 						)
 
 						val message = data.readText()
@@ -154,11 +152,6 @@ fun SeedSocket(
 	private fun reconnect(host: String, path: String) {
 		reconnectionJob?.cancel()
 
-		logger.d(
-			tag = "SeedSocket",
-			message = "Reconnecting started"
-		)
-
 		reconnectionJob = coroutineScope?.launch {
 			stop()
 			delay(reconnectionIntervalMillis)
@@ -183,13 +176,13 @@ fun SeedSocket(
 
 			session.send(Frame.Text(jsonContent))
 
-			logger.d(tag = "SeedSocket", message = "Sent JSON: $jsonContent")
+			logger.d(tag = "SeedSocket", message = "Sent: $jsonContent")
 
 			return SocketSendResult.SUCCESS
 		} catch (ex: Exception) {
 			logger.e(
 				tag = "SeedSocket",
-				message = "An error occured while sending message to the socket: ${ex.message}"
+				message = "An error occured while sending: ${ex.message}"
 			)
 
 			return SocketSendResult.FAILURE

@@ -66,11 +66,6 @@ fun SeedWorkerStateHandle(
 		override val events: SharedFlow<WorkerStateHandleEvent> = events
 
 		override fun initializeWorkerStateHandle() {
-			logger.d(
-				tag = "SeedWorkerStateHandle",
-				message = "initializeWorkerStateHandle"
-			)
-
 			getScope().launch {
 				worker.events.collect { event ->
 					when (event) {
@@ -81,21 +76,11 @@ fun SeedWorkerStateHandle(
 						is WorkerEvent.DeferredNewEvent -> {
 							val chatIsWaiting = waitingChatIds.contains(event.chatId)
 							if (!chatIsWaiting) {
-								logger.d(
-									tag = "SeedWorkerStateHandle",
-									message = "Adding deferred chat event"
-								)
-
 								val deferList = accumulatedMessageDefers.getOrPut(event.chatId) {
 									mutableListOf()
 								}
 								deferList.add(Pair(event.nonce, event.deferredEvent))
 							} else {
-								logger.d(
-									tag = "SeedWorkerStateHandle",
-									message = "Start emitting after Wait"
-								)
-
 								val awaited = event.deferredEvent.await()
 								if (awaited is MessageContent.RegularMessage) {
 									events.emit(
@@ -109,11 +94,6 @@ fun SeedWorkerStateHandle(
 						}
 
 						is WorkerEvent.Wait -> {
-							logger.d(
-								tag = "SeedWorkerStateHandle",
-								message = "Got Wait event from worker"
-							)
-
 							val maxNonce: Int = accumulatedMessageDefers[event.chatId]
 								?.maxBy { it.first }
 								?.first
