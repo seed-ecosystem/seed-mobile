@@ -31,7 +31,7 @@ val appModule = module {
 	single { SubscribeToChatUseCase(get(), get(), get()) }
 	single { SendMessageUseCase(get(), get(), get(), get(), get(), get(), get(), nonceAttempts = 50) }
 	factory { GetMessageKeyUseCase(get(), get()) }
-	factory { AddChatUseCase(get(), get()) }
+	factory { AddChatUseCase(get(), get(), get()) }
 
 	single<KeyManager> { KeyManager(get(), get(), get()) }
 

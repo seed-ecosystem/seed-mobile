@@ -45,5 +45,7 @@ interface SeedEngine {
 		serverUrl: ServerUrl,
 		jsonRequest: String,
 	)
+
+	suspend fun connectServer(url: ServerUrl)
 }
 

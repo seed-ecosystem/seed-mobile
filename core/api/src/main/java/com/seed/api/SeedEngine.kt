@@ -137,13 +137,7 @@ fun SeedEngine(
 			val serverUrls = chatsRepository.getAllServerUrls()
 
 			serverUrls.forEach { url: String ->
-				val request = json.encodeToString(
-					ConnectForwardingRequest(
-						url = url.replace("https", "wss"), // TODO: move this logic to the appropriate place
-					)
-				)
-
-				socket.send(request) // TODO: add handling for request responses
+				connectServer(ServerUrl(url))
 			}
 
 			pingJob?.cancel()
@@ -151,6 +145,16 @@ fun SeedEngine(
 			pingJob = scope.launch {
 				sendPingEachMillis()
 			}
+		}
+
+		override suspend fun connectServer(url: ServerUrl) {
+			val request = json.encodeToString(
+				ConnectForwardingRequest(
+					url = url.value.replace("https", "wss"), // TODO: move this logic to the appropriate place
+				)
+			)
+
+			socket.send(request) // TODO: add handling for request responses
 		}
 
 		private suspend fun sendPingEachMillis() {
