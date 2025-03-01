@@ -1,9 +1,11 @@
 package com.seed.api
 
+import com.seed.api.models.IncomingContent
 import com.seed.api.util.SeedSocket
 import com.seed.api.util.SocketEvent
 import com.seed.domain.EngineEvent
 import com.seed.domain.ForwardingState
+import com.seed.domain.ResponseQueueItem
 import com.seed.domain.SeedEngine
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.ChatsRepository
@@ -57,6 +59,9 @@ fun SeedEngine(
 	pingIntervalMillis: Long,
 ): SeedEngine {
 	return object : SeedEngine {
+		override val responseQueue: MutableList<(ResponseQueueItem) -> Unit> =
+			mutableListOf()
+
 		override val connectionState: StateFlow<SocketConnectionState> = socket.connectionState
 
 		private val _events = MutableSharedFlow<EngineEvent>()
@@ -64,8 +69,6 @@ fun SeedEngine(
 
 		private val _forwardingState = MutableStateFlow(ForwardingState(emptyList()))
 		override val forwardingState: StateFlow<ForwardingState> = _forwardingState
-
-		private var pingJob: Job? = null
 
 		private val json = Json { encodeDefaults = true }
 
@@ -133,6 +136,8 @@ fun SeedEngine(
 			}
 		}
 
+		private var pingJob: Job? = null
+
 		private suspend fun handleOnConnect(scope: CoroutineScope) {
 			val serverUrls = chatsRepository.getAllServerUrls()
 
@@ -147,6 +152,29 @@ fun SeedEngine(
 			}
 		}
 
+		private suspend fun sendPingEachMillis() {
+			val pingRequestJson = json.encodeToString(PingRequest())
+
+			while (true) {
+				val urls = chatsRepository.getAllServerUrls()
+
+				delay(pingIntervalMillis)
+
+				socket.send(pingRequestJson)
+
+				responseQueue.add {}
+
+				urls.forEach { url ->
+					send(
+						serverUrl = url,
+						jsonRequest = pingRequestJson
+					)
+
+					responseQueue.add {}
+				}
+			}
+		}
+
 		override suspend fun connectServer(url: ServerUrl) {
 			val request = json.encodeToString(
 				ConnectForwardingRequest(
@@ -158,25 +186,6 @@ fun SeedEngine(
 			)
 
 			socket.send(request) // TODO: add handling for request responses
-		}
-
-		private suspend fun sendPingEachMillis() {
-			val pingRequestJson = json.encodeToString(PingRequest())
-
-			while (true) {
-				val urls = chatsRepository.getAllServerUrls()
-
-				delay(pingIntervalMillis)
-
-				socket.send(pingRequestJson)
-
-				urls.forEach { url ->
-					send(
-						serverUrl = url,
-						jsonRequest = pingRequestJson
-					)
-				}
-			}
 		}
 
 		override suspend fun stop() {

@@ -32,7 +32,13 @@ data class ForwardingState(
 	)
 }
 
+data class ResponseQueueItem(
+	val status: Boolean,
+)
+
 interface SeedEngine {
+	val responseQueue: MutableList<(ResponseQueueItem) -> Unit>
+
 	val events: SharedFlow<EngineEvent>
 	val connectionState: StateFlow<SocketConnectionState>
 	val forwardingState: StateFlow<ForwardingState>

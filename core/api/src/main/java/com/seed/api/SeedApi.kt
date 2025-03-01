@@ -8,6 +8,7 @@ import com.seed.api.models.SubscribeRequest
 import com.seed.api.util.SeedSocket
 import com.seed.domain.EngineEvent
 import com.seed.domain.Logger
+import com.seed.domain.ResponseQueueItem
 import com.seed.domain.SeedEngine
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedApi
@@ -29,8 +30,6 @@ fun SeedApi(
 	logger: Logger,
 	engine: SeedEngine,
 ): SeedApi {
-	val responseQueue: MutableList<(IncomingContent.IncomingResponse) -> Unit> = mutableListOf()
-
 	return object : SeedApi {
 		private val _apiEvents = MutableSharedFlow<ApiEvent>()
 		override val apiEvents: SharedFlow<ApiEvent> = _apiEvents
@@ -45,9 +44,9 @@ fun SeedApi(
 							val incomingMessage = parseSocketEvent(socketEvent)
 
 							if (incomingMessage is IncomingContent.IncomingResponse) {
-								if (responseQueue.size > 0) {
-									responseQueue[0](incomingMessage)
-									responseQueue.removeAt(0)
+								if (engine.responseQueue.size > 0) {
+									engine.responseQueue[0](ResponseQueueItem(incomingMessage.response.status))
+									engine.responseQueue.removeAt(0)
 								}
 							}
 
@@ -127,13 +126,13 @@ fun SeedApi(
 			)
 
 			return suspendCoroutine { continuation ->
-				responseQueue.add { response ->
+				engine.responseQueue.add { response: ResponseQueueItem ->
 					logger.d(
 						tag = "SeedApi",
 						message = "sendMessage: Response: $response",
 					)
 
-					if (response.response.status) continuation.resume(ApiResponse.Success(Unit))
+					if (response.status) continuation.resume(ApiResponse.Success(Unit))
 					else continuation.resume(ApiResponse.Failure())
 				}
 			}
@@ -167,13 +166,13 @@ fun SeedApi(
 			)
 
 			return suspendCoroutine { continuation ->
-				responseQueue.add { response ->
+				engine.responseQueue.add { response: ResponseQueueItem ->
 					logger.d(
 						tag = "SeedApi",
 						message = "Subscribe response: $response"
 					)
 
-					if (response.response.status) continuation.resume(ApiResponse.Success(Unit))
+					if (response.status) continuation.resume(ApiResponse.Success(Unit))
 					else continuation.resume(ApiResponse.Failure())
 				}
 			}
