@@ -10,6 +10,7 @@ import com.seed.domain.EngineEvent
 import com.seed.domain.Logger
 import com.seed.domain.ResponseQueueItem
 import com.seed.domain.SeedEngine
+import com.seed.domain.SocketSendResult
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedApi
 import com.seed.domain.api.SocketConnectionState
@@ -114,11 +115,10 @@ fun SeedApi(
 			)
 
 			val sendResult = engine.send(serverUrl, jsonRequest)
-//			val socketSendResult = socket.send(jsonRequest)
 
-//			if (sendResult == SocketSendResult.FAILURE) {
-//				return ApiResponse.Failure()
-//			}
+			if (sendResult == SocketSendResult.FAILURE) {
+				return ApiResponse.Failure()
+			}
 
 			logger.d(
 				tag = "SeedApi",
@@ -151,14 +151,13 @@ fun SeedApi(
 			val jsonRequest = Json.encodeToString(subscribeRequest)
 
 			val sendResult = engine.send(
-				// TODO: add handling of subscribe requests
 				serverUrl = serverUrl,
 				jsonRequest = jsonRequest,
 			)
 
-//			if (engineSendResult == SocketSendResult.FAILURE) {
-//				return ApiResponse.Failure()
-//			}
+			if (sendResult == SocketSendResult.FAILURE) {
+				return ApiResponse.Failure()
+			}
 
 			logger.d(
 				tag = "SeedApi",

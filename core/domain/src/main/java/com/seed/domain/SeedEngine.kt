@@ -50,7 +50,7 @@ interface SeedEngine {
 	suspend fun send(
 		serverUrl: ServerUrl,
 		jsonRequest: String,
-	)
+	): SocketSendResult
 
 	suspend fun connectServer(url: ServerUrl)
 }

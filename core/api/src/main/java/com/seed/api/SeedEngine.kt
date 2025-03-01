@@ -7,6 +7,7 @@ import com.seed.domain.EngineEvent
 import com.seed.domain.ForwardingState
 import com.seed.domain.ResponseQueueItem
 import com.seed.domain.SeedEngine
+import com.seed.domain.SocketSendResult
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.data.SettingsRepository
@@ -192,7 +193,7 @@ fun SeedEngine(
 			socket.disconnect()
 		}
 
-		override suspend fun send(serverUrl: ServerUrl, jsonRequest: String) {
+		override suspend fun send(serverUrl: ServerUrl, jsonRequest: String): SocketSendResult {
 			val forwardingRequest = ForwardingRequest(
 				url = serverUrl.value.replace(
 					"https",
@@ -202,7 +203,7 @@ fun SeedEngine(
 			)
 			val forwardingRequestJson = json.encodeToString(forwardingRequest)
 
-			socket.send(forwardingRequestJson)
+			return socket.send(forwardingRequestJson)
 		}
 
 		private fun getMainServerUri(mainServerUrl: String): URI {
