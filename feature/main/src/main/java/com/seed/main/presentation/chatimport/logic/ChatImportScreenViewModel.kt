@@ -100,6 +100,6 @@ fun parseChatUri(encodedUri: String): ParsedChatUri {
 		privateKey = privateKey,
 		nonce = nonce.toInt(),
 		chatId = chatId,
-		serverAddress = serverAddress
+		serverAddress = serverAddress.replace("https", "wss"),
 	)
 }

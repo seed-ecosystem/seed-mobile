@@ -6,10 +6,10 @@ import com.seed.settings.presentation.logic.ServerOption
 val serverList = listOf(
 	ServerOption(
 		serverName = "Go Server",
-		serverUrl = "https://api.meetacy.app/seed-go",
+		serverUrl = "wss://api.meetacy.app/seed-go",
 	),
 	ServerOption(
 		serverName = "Kotlin Server",
-		serverUrl = "https://api.meetacy.app/seed-kt",
+		serverUrl = "wss://api.meetacy.app/seed-kt",
 	),
 )

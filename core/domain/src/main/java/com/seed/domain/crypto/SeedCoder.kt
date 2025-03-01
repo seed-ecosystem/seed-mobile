@@ -1,5 +1,7 @@
 package com.seed.domain.crypto
 
+import com.seed.domain.values.ChatId
+
 data class MessageEncodeResult(
 	val key: String,
 	val signature: String,
@@ -25,6 +27,13 @@ interface SeedCoder {
 		title: String,
 		text: String,
 		previousKey: String,
+	): MessageEncodeResult?
+
+	suspend fun encodeFirstMessage(
+		chatId: ChatId,
+		title: String,
+		text: String,
+		messageKey: String
 	): MessageEncodeResult?
 
 	fun deriveNextKey(key: String): String

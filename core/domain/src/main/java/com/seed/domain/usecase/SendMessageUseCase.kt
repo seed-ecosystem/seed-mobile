@@ -45,7 +45,44 @@ class SendMessageUseCase(
 
 		val lastMessageNonce = chatRepository
 			.getMessages(chatId)
-			.maxOf { it.nonce }
+			.maxOfOrNull { it.nonce }
+
+		if (lastMessageNonce == null) {
+			val messageKey = keyManager.getKey(
+				chatId = chatId,
+				nonce = 0,
+			)
+
+			if (messageKey == null) return SendMessageResult.Failure
+
+
+			val encodingResult = seedCoder
+				.encodeFirstMessage(
+					chatId = ChatId(chatId),
+					title = author,
+					text = messageText,
+					messageKey = messageKey,
+				)
+
+			if (encodingResult == null) return SendMessageResult.Failure
+
+			val dto = SendMessageDto(
+				chatId = chatId,
+				nonce = 0,
+				encryptedContentBase64 = encodingResult.content,
+				encryptedContentIv = encodingResult.contentIv,
+				signature = encodingResult.signature,
+				serverUrl = serverUrl,
+			)
+
+			val sendMessageResult = seedWorkerStateHandle.sendMessage(dto)
+
+			if (sendMessageResult is com.seed.domain.data.SendMessageResult.Success)
+				return SendMessageResult.Success(0)
+
+			return SendMessageResult.Failure
+		}
+
 
 		val tillNonce = lastMessageNonce + nonceAttempts
 		val startNonce = lastMessageNonce + 1

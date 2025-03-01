@@ -178,12 +178,7 @@ fun SeedEngine(
 
 		override suspend fun connectServer(url: ServerUrl) {
 			val request = json.encodeToString(
-				ConnectForwardingRequest(
-					url = url.value.replace(
-						"https",
-						"wss"
-					), // TODO: move this logic to the appropriate place
-				)
+				ConnectForwardingRequest(url = url.value)
 			)
 
 			socket.send(request) // TODO: add handling for request responses
@@ -195,10 +190,7 @@ fun SeedEngine(
 
 		override suspend fun send(serverUrl: ServerUrl, jsonRequest: String): SocketSendResult {
 			val forwardingRequest = ForwardingRequest(
-				url = serverUrl.value.replace(
-					"https",
-					"wss"
-				), // TODO: move this logic to the appropriate place
+				url = serverUrl.value,
 				request = json.parseToJsonElement(jsonRequest),
 			)
 			val forwardingRequestJson = json.encodeToString(forwardingRequest)

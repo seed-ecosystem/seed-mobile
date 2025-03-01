@@ -8,6 +8,7 @@ import com.seed.domain.Logger
 import com.seed.domain.crypto.ChatUpdateDecodeResult
 import com.seed.domain.crypto.MessageEncodeResult
 import com.seed.domain.crypto.SeedCoder
+import com.seed.domain.values.ChatId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -95,6 +96,34 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 				signature = it.signature,
 				content = it.content,
 				contentIv = it.contentIv
+			)
+		}
+	}
+
+	override suspend fun encodeFirstMessage(
+		chatId: ChatId,
+		title: String,
+		text: String,
+		messageKey: String,
+	): MessageEncodeResult? = withContext(Dispatchers.Default) {
+		val decryptedContent = DecryptedMessageContent(
+			type = "regular",
+			title = title,
+			text = text
+		)
+		val decryptedContentJson = Json.encodeToString(decryptedContent)
+
+		val encodeResult = encode(
+			content = decryptedContentJson,
+			key = messageKey
+		)
+
+		return@withContext encodeResult?.let {
+			MessageEncodeResult(
+				key = messageKey,
+				signature = it.signature,
+				content = it.content,
+				contentIv = it.contentIv,
 			)
 		}
 	}
