@@ -28,9 +28,10 @@ class ChatsRepositoryImpl(
 			.map(ChatDbo::toChat)
 	}
 
-	override suspend fun getAllServerUrls(): List<String> = withContext(Dispatchers.IO) {
+	override suspend fun getAllServerUrls(): List<ServerUrl> = withContext(Dispatchers.IO) {
 		return@withContext chatDao
 			.getDistinctServerUrls()
+			.map { ServerUrl(it) }
 	}
 
 	override suspend fun getChatServerUrl(chatId: ChatId): ServerUrl = withContext(Dispatchers.IO) {

@@ -136,8 +136,8 @@ fun SeedEngine(
 		private suspend fun handleOnConnect(scope: CoroutineScope) {
 			val serverUrls = chatsRepository.getAllServerUrls()
 
-			serverUrls.forEach { url: String ->
-				connectServer(ServerUrl(url))
+			serverUrls.forEach { url: ServerUrl ->
+				connectServer(url)
 			}
 
 			pingJob?.cancel()
@@ -150,7 +150,10 @@ fun SeedEngine(
 		override suspend fun connectServer(url: ServerUrl) {
 			val request = json.encodeToString(
 				ConnectForwardingRequest(
-					url = url.value.replace("https", "wss"), // TODO: move this logic to the appropriate place
+					url = url.value.replace(
+						"https",
+						"wss"
+					), // TODO: move this logic to the appropriate place
 				)
 			)
 
@@ -161,9 +164,18 @@ fun SeedEngine(
 			val pingRequestJson = json.encodeToString(PingRequest())
 
 			while (true) {
+				val urls = chatsRepository.getAllServerUrls()
+
 				delay(pingIntervalMillis)
 
 				socket.send(pingRequestJson)
+
+				urls.forEach { url ->
+					send(
+						serverUrl = url,
+						jsonRequest = pingRequestJson
+					)
+				}
 			}
 		}
 
@@ -173,7 +185,10 @@ fun SeedEngine(
 
 		override suspend fun send(serverUrl: ServerUrl, jsonRequest: String) {
 			val forwardingRequest = ForwardingRequest(
-				url = serverUrl.value.replace("https", "wss"), // TODO: move this logic to the appropriate place
+				url = serverUrl.value.replace(
+					"https",
+					"wss"
+				), // TODO: move this logic to the appropriate place
 				request = json.parseToJsonElement(jsonRequest),
 			)
 			val forwardingRequestJson = json.encodeToString(forwardingRequest)

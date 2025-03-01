@@ -10,7 +10,7 @@ interface ChatsRepository {
 
 	suspend fun getAllChatsList(): List<Chat>
 
-	suspend fun getAllServerUrls(): List<String>
+	suspend fun getAllServerUrls(): List<ServerUrl>
 
 	suspend fun add(chatId: String, key: String, keyNonce: Int, name: String, serverUrl: String)
 
