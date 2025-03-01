@@ -4,6 +4,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("response")
+data class ForwardingResponseStatus(
+	val type: String,
+	val status: Boolean,
+)
+
+@Serializable
 internal sealed interface IncomingContent {
 	@SerialName("type")
 	val type: String

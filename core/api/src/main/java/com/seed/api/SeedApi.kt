@@ -1,6 +1,7 @@
 package com.seed.api
 
 import com.seed.api.models.EventContent
+import com.seed.api.models.ForwardingResponseStatus
 import com.seed.api.models.IncomingContent
 import com.seed.api.models.SendMessageRequest
 import com.seed.api.models.SubscribeRequest
@@ -26,7 +27,6 @@ import kotlin.coroutines.suspendCoroutine
 
 fun SeedApi(
 	logger: Logger,
-	socket: SeedSocket,
 	engine: SeedEngine,
 ): SeedApi {
 	val responseQueue: MutableList<(IncomingContent.IncomingResponse) -> Unit> = mutableListOf()
@@ -78,8 +78,21 @@ fun SeedApi(
 			return try {
 				Json.decodeFromString<IncomingContent>(incomingContent.content)
 			} catch (ex: SerializationException) {
-				logger.e("SeedApi", "Parsing error: ${ex.message}")
-				null
+				try {
+					val forwardingResponse =
+						Json.decodeFromString<ForwardingResponseStatus>(incomingContent.content)
+
+					logger.d(
+						tag = "SeedApi",
+						message = "Forwarding request status (${incomingContent.url.value}): ${forwardingResponse.status}"
+					)
+
+					null
+				} catch (ex: SerializationException) {
+
+					logger.e("SeedApi", "Parsing error: ${ex.message}")
+					null
+				}
 			}
 		}
 
@@ -126,7 +139,11 @@ fun SeedApi(
 			}
 		}
 
-		override suspend fun subscribeToChat(chatId: String, nonce: Int, serverUrl: ServerUrl): ApiResponse<Unit> {
+		override suspend fun subscribeToChat(
+			chatId: String,
+			nonce: Int,
+			serverUrl: ServerUrl
+		): ApiResponse<Unit> {
 			val subscribeRequest = SubscribeRequest(
 				type = "subscribe",
 				queueId = chatId,
@@ -134,7 +151,8 @@ fun SeedApi(
 			)
 			val jsonRequest = Json.encodeToString(subscribeRequest)
 
-			val sendResult = engine.send( // TODO: add handling of subscribe requests
+			val sendResult = engine.send(
+				// TODO: add handling of subscribe requests
 				serverUrl = serverUrl,
 				jsonRequest = jsonRequest,
 			)

@@ -62,7 +62,6 @@ val appModule = module {
 	single<SeedApi> {
 		SeedApi(
 			logger = get(),
-			socket = get(),
 			engine = get(),
 		)
 	}
