@@ -1,5 +1,6 @@
 package com.seed.api.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,8 +10,9 @@ data class SendMessageRequest(
 ) {
 	@Serializable
 	data class Message(
-		val chatId: String,
+		val queueId: String,
 		val content: String,
+		@SerialName("contentIV")
 		val contentIv: String,
 		val nonce: Int,
 		val signature: String,
@@ -26,7 +28,7 @@ data class SendMessageRequest(
 		) = SendMessageRequest(
 			type = "send",
 			message = Message(
-				chatId = chatId,
+				queueId = chatId,
 				content = content,
 				contentIv = contentIv,
 				nonce = nonce,

@@ -5,8 +5,8 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class ChatKeyDbo(
-	@PrimaryKey
 	val nonce: Int,
+	@PrimaryKey
 	val key: String,
 	val chatId: String,
 )

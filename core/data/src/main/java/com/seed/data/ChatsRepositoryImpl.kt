@@ -2,6 +2,7 @@ package com.seed.data
 
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.model.Chat
+import com.seed.domain.values.ChatId
 import com.seed.domain.values.ServerUrl
 import com.seed.persistence.db.dao.ChatDao
 import com.seed.persistence.db.dao.ChatKeyDao
@@ -32,7 +33,17 @@ class ChatsRepositoryImpl(
 			.getDistinctServerUrls()
 	}
 
-	override suspend fun add(chatId: String, key: String, keyNonce: Int, name: String, serverUrl: String) {
+	override suspend fun getChatServerUrl(chatId: ChatId): ServerUrl = withContext(Dispatchers.IO) {
+		return@withContext ServerUrl(chatDao.getServerUrlByChatId(chatId.value))
+	}
+
+	override suspend fun add(
+		chatId: String,
+		key: String,
+		keyNonce: Int,
+		name: String,
+		serverUrl: String
+	) {
 		withContext(Dispatchers.IO) {
 			chatKeyDao.set(
 				key = ChatKeyDbo(

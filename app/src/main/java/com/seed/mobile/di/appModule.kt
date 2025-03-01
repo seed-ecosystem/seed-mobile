@@ -29,13 +29,13 @@ import org.koin.dsl.module
 
 val appModule = module {
 	single { SubscribeToChatUseCase(get(), get(), get()) }
-	single { SendMessageUseCase(get(), get(), get(), get(), get(), nonceAttempts = 50) }
+	single { SendMessageUseCase(get(), get(), get(), get(), get(), get(), get(), nonceAttempts = 50) }
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get(), get()) }
 
 	single<KeyManager> { KeyManager(get(), get(), get()) }
 
-	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get()) }
+	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get()) }
 	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get()) }
 	factory<ChatKeyRepository> { ChatKeyRepositoryImpl(get()) }
 	factory<SettingsRepository> { SettingsRepositoryImpl(get(), get()) }
@@ -68,7 +68,7 @@ val appModule = module {
 	}
 
 	single<SeedWorker> {
-		SeedWorker(get(), get(), get(), get(), get())
+		SeedWorker(get(), get(), get(), get(), get(), get())
 	}
 
 	single<SeedWorkerStateHandle> {

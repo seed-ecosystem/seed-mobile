@@ -1,6 +1,8 @@
 package com.seed.domain
 
 import com.seed.domain.api.SocketConnectionState
+import com.seed.domain.data.SendMessageDto
+import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.MessageContent
 import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.Deferred
@@ -36,9 +38,8 @@ interface SeedWorkerStateHandle {
 	fun initializeWorkerStateHandle()
 
 	suspend fun sendMessage(
-		chatId: String,
-		messageContent: MessageContent.RegularMessage,
-	)
+		dto: SendMessageDto,
+	): SendMessageResult
 
 	suspend fun subscribe(
 		chatId: String,
@@ -143,9 +144,8 @@ fun SeedWorkerStateHandle(
 		}
 
 		override suspend fun sendMessage(
-			chatId: String,
-			messageContent: MessageContent.RegularMessage
-		) = worker.sendMessage(chatId, messageContent)
+			dto: SendMessageDto,
+		): SendMessageResult = worker.sendMessage(dto)
 
 		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl) =
 			worker.subscribe(chatId, nonce, serverUrl)

@@ -25,4 +25,7 @@ interface ChatDao {
 
 	@Query("DELETE FROM chatdbo WHERE chatId = :chatId")
 	fun deleteById(chatId: String)
+
+	@Query("SELECT ServerUrl FROM ChatDbo WHERE chatId = :chatId")
+	fun getServerUrlByChatId(chatId: String): String
 }

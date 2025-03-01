@@ -1,6 +1,7 @@
 package com.seed.domain.data
 
 import com.seed.domain.model.MessageContent
+import com.seed.domain.values.ServerUrl
 
 data class SendMessageDto(
 	val chatId: String,
@@ -8,6 +9,7 @@ data class SendMessageDto(
 	val encryptedContentBase64: String,
 	val encryptedContentIv: String,
 	val signature: String,
+	val serverUrl: ServerUrl,
 )
 
 data class GetLastChatKeyResult(
@@ -31,6 +33,4 @@ interface ChatRepository {
 	suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage)
 
 	suspend fun addMessagesList(chatId: String, messages: List<MessageContent.RegularMessage>)
-
-	suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult
 }

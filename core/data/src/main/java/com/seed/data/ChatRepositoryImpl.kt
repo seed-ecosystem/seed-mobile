@@ -4,6 +4,7 @@ import com.seed.domain.Logger
 import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedApi
 import com.seed.domain.data.ChatRepository
+import com.seed.domain.data.ChatsRepository
 import com.seed.domain.data.SendMessageDto
 import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.MessageContent
@@ -15,6 +16,7 @@ import com.seed.persistence.db.dbo.ChatEventType
 class ChatRepositoryImpl(
 	private val chatEventDao: ChatEventDao,
 	private val messagingApi: SeedApi,
+	private val chatsRepository: ChatsRepository,
 	private val logger: Logger,
 ) : ChatRepository {
 	override suspend fun getMessages(chatId: String): List<MessageContent> =
@@ -40,33 +42,6 @@ class ChatRepositoryImpl(
 		chatEventDao.insertAll(
 			messages.map { it.toChatEventDbo(chatId) }
 		)
-	}
-
-	override suspend fun sendMessage(sendMessageDto: SendMessageDto): SendMessageResult {
-		logger.d(
-			tag = "ChatRepository",
-			message = "sendMessage: Sending message $sendMessageDto"
-		)
-
-		val result = messagingApi.sendMessage(
-			chatId = sendMessageDto.chatId,
-			content = sendMessageDto.encryptedContentBase64,
-			contentIv = sendMessageDto.encryptedContentIv,
-			nonce = sendMessageDto.nonce,
-			signature = sendMessageDto.signature,
-			serverUrl = ServerUrl("https://api.meetacy.app/seed-go")
-		)
-
-		if (result is ApiResponse.Failure) {
-			logger.e(
-				tag = "ChatRepository",
-				message = "sendMessage: Error while trying to send api send request: $result"
-			)
-
-			return SendMessageResult.Failure
-		}
-
-		return SendMessageResult.Success
 	}
 }
 

@@ -1,11 +1,15 @@
 package com.seed.domain
 
+import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedApi
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.crypto.SeedCoder
+import com.seed.domain.data.ChatsRepository
+import com.seed.domain.data.SendMessageDto
+import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.ApiEvent
 import com.seed.domain.model.MessageContent
-import com.seed.domain.usecase.GetMessageKeyUseCase
+import com.seed.domain.values.ChatId
 import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -42,9 +46,8 @@ interface SeedWorker {
 	fun initializeWorker()
 
 	suspend fun sendMessage(
-		chatId: String,
-		messageContent: MessageContent.RegularMessage,
-	)
+		dto: SendMessageDto,
+	): SendMessageResult
 
 	suspend fun subscribe(
 		chatId: String,
@@ -58,6 +61,7 @@ fun SeedWorker(
 	seedApi: SeedApi,
 	keyManager: KeyManager,
 	getScope: GetApplicationCoroutineScope,
+	chatsRepository: ChatsRepository,
 	logger: Logger,
 ): SeedWorker {
 	return object : SeedWorker {
@@ -141,28 +145,21 @@ fun SeedWorker(
 		}
 
 		override suspend fun sendMessage(
-			chatId: String,
-			messageContent: MessageContent.RegularMessage
-		) {
-			// todo result return & implement different nonce attempts
-
-			val messageKey = keyManager.getKey(chatId, messageContent.nonce) ?: return
-
-			val encodingResult = coder.encodeMessage(
-				chatId = chatId,
-				title = messageContent.title,
-				text = messageContent.text,
-				previousKey = messageKey
-			) ?: return
-
-			seedApi.sendMessage(
-				chatId = chatId,
-				nonce = messageContent.nonce,
-				content = encodingResult.content,
-				contentIv = encodingResult.contentIv,
-				signature = encodingResult.signature,
-				serverUrl = ServerUrl("https://api.meetacy.app/seed-go")
+			dto: SendMessageDto,
+		): SendMessageResult {
+			val apiResponse = seedApi.sendMessage(
+				chatId = dto.chatId,
+				serverUrl = dto.serverUrl,
+				content = dto.encryptedContentBase64,
+				contentIv = dto.encryptedContentIv,
+				nonce = dto.nonce,
+				signature = dto.signature,
 			)
+
+			return when (apiResponse) {
+				is ApiResponse.Success -> SendMessageResult.Success
+				is ApiResponse.Failure -> SendMessageResult.Failure
+			}
 		}
 
 		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl) {

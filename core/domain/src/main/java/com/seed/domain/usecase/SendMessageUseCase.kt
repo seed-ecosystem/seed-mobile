@@ -1,10 +1,16 @@
 package com.seed.domain.usecase
 
+import com.seed.domain.KeyManager
 import com.seed.domain.Logger
+import com.seed.domain.SeedWorkerStateHandle
+import com.seed.domain.api.ApiResponse
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatRepository
+import com.seed.domain.data.ChatsRepository
 import com.seed.domain.data.SettingsRepository
 import com.seed.domain.data.SendMessageDto
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerUrl
 
 sealed interface SendMessageResult {
 	/**
@@ -19,9 +25,11 @@ sealed interface SendMessageResult {
 
 class SendMessageUseCase(
 	private val chatRepository: ChatRepository,
+	private val chatsRepository: ChatsRepository,
+	private val seedWorkerStateHandle: SeedWorkerStateHandle,
 	private val seedCoder: SeedCoder,
 	private val logger: Logger,
-	private val getMessageKey: GetMessageKeyUseCase,
+	private val keyManager: KeyManager,
 	private val settingsRepository: SettingsRepository,
 	private val nonceAttempts: Int,
 ) {
@@ -32,6 +40,8 @@ class SendMessageUseCase(
 		val author = settingsRepository.getNickname().let {
 			if (it.isNullOrEmpty()) "Anonymous android user" else it
 		}
+
+		val serverUrl = chatsRepository.getChatServerUrl(ChatId(chatId))
 
 		val lastMessageNonce = chatRepository
 			.getMessages(chatId)
@@ -54,12 +64,12 @@ class SendMessageUseCase(
 			""".trimIndent()
 			)
 
-			val previousMessageKey = getMessageKey(
+			val messageKey = keyManager.getKey(
 				chatId = chatId,
-				nonce = previousNonce
+				nonce = previousNonce,
 			)
 
-			if (previousMessageKey == null) {
+			if (messageKey == null) {
 				logger.e(
 					tag = "SendMessageUseCase",
 					message = "Error sending message: message key is null"
@@ -72,7 +82,7 @@ class SendMessageUseCase(
 					chatId = chatId,
 					title = author,
 					text = messageText,
-					previousKey = previousMessageKey,
+					previousKey = messageKey,
 				)
 
 			if (encodingResult == null) return SendMessageResult.Failure
@@ -83,9 +93,10 @@ class SendMessageUseCase(
 				encryptedContentBase64 = encodingResult.content,
 				encryptedContentIv = encodingResult.contentIv,
 				signature = encodingResult.signature,
+				serverUrl = serverUrl,
 			)
 
-			val sendMessageResult = chatRepository.sendMessage(dto)
+			val sendMessageResult = seedWorkerStateHandle.sendMessage(dto)
 
 			if (sendMessageResult is com.seed.domain.data.SendMessageResult.Success)
 				return SendMessageResult.Success(currentNonce)

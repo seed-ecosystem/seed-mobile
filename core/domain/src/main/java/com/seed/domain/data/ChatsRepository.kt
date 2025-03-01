@@ -1,6 +1,8 @@
 package com.seed.domain.data
 
 import com.seed.domain.model.Chat
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.flow.Flow
 
 interface ChatsRepository {
@@ -13,4 +15,5 @@ interface ChatsRepository {
 	suspend fun add(chatId: String, key: String, keyNonce: Int, name: String, serverUrl: String)
 
 	suspend fun delete(chatId: String)
+	suspend fun getChatServerUrl(chatId: ChatId): ServerUrl
 }
