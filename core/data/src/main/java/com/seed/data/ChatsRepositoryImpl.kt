@@ -3,6 +3,8 @@ package com.seed.data
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.model.Chat
 import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 import com.seed.persistence.db.dao.ChatDao
 import com.seed.persistence.db.dao.ChatKeyDao
@@ -43,41 +45,41 @@ class ChatsRepositoryImpl(
 	}
 
 	override suspend fun add(
-		chatId: String,
-		key: String,
-		keyNonce: Int,
+		chatId: ChatId,
+		key: ChatKey,
+		keyNonce: ServerNonce,
 		name: String,
-		serverUrl: String
+		serverUrl: ServerUrl,
 	) {
 		withContext(Dispatchers.IO) {
 			chatKeyDao.set(
 				key = ChatKeyDbo(
-					key = key,
-					nonce = keyNonce,
-					chatId = chatId,
+					key = key.value,
+					nonce = keyNonce.value,
+					chatId = chatId.value,
 				)
 			)
 
 			chatDao.insert(
 				ChatDbo(
-					chatId = chatId,
-					chatKey = key,
+					chatId = chatId.value,
+					chatKey = key.value,
 					chatName = name,
-					firstChatKeyNonce = keyNonce,
-					serverUrl = serverUrl,
+					firstChatKeyNonce = keyNonce.value,
+					serverUrl = serverUrl.value,
 				)
 			)
 		}
 	}
 
-	override suspend fun delete(chatId: String) = withContext(Dispatchers.IO) {
-		chatDao.deleteById(chatId)
+	override suspend fun delete(chatId: ChatId) = withContext(Dispatchers.IO) {
+		chatDao.deleteById(chatId.value)
 	}
 }
 
 private fun ChatDbo.toChat(): Chat = Chat(
-	chatId = this.chatId,
+	chatId = ChatId(this.chatId),
 	name = this.chatName,
-	firstChatKeyNonce = this.firstChatKeyNonce,
+	firstChatKeyNonce = ServerNonce(this.firstChatKeyNonce),
 	serverUrl = ServerUrl(this.serverUrl),
 )

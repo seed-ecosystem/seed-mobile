@@ -8,6 +8,8 @@ import com.seed.domain.data.ChatsRepository
 import com.seed.domain.data.SendMessageDto
 import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.MessageContent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 import com.seed.persistence.db.dao.ChatEventDao
 import com.seed.persistence.db.dbo.ChatEventDbo
@@ -19,24 +21,24 @@ class ChatRepositoryImpl(
 	private val chatsRepository: ChatsRepository,
 	private val logger: Logger,
 ) : ChatRepository {
-	override suspend fun getMessages(chatId: String): List<MessageContent> =
-		chatEventDao.getAllByChatId(chatId)
+	override suspend fun getMessages(chatId: ChatId): List<MessageContent> =
+		chatEventDao.getAllByChatId(chatId.value)
 			.map {
 				MessageContent.RegularMessage(
-					nonce = it.nonce,
+					nonce = ServerNonce(it.nonce),
 					title = it.title,
 					text = it.text,
 				)
 			}
 
-	override suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage) {
+	override suspend fun addMessage(chatId: ChatId, message: MessageContent.RegularMessage) {
 		chatEventDao.insert(
 			message.toChatEventDbo(chatId)
 		)
 	}
 
 	override suspend fun addMessagesList(
-		chatId: String,
+		chatId: ChatId,
 		messages: List<MessageContent.RegularMessage>
 	) {
 		chatEventDao.insertAll(
@@ -45,10 +47,10 @@ class ChatRepositoryImpl(
 	}
 }
 
-private fun MessageContent.RegularMessage.toChatEventDbo(chatId: String): ChatEventDbo {
+private fun MessageContent.RegularMessage.toChatEventDbo(chatId: ChatId): ChatEventDbo {
 	return ChatEventDbo(
-		chatId = chatId,
-		nonce = this.nonce,
+		chatId = chatId.value,
+		nonce = this.nonce.value,
 		eventType = ChatEventType.NewMessage,
 		title = this.title,
 		this.text,

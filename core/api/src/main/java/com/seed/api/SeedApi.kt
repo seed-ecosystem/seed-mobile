@@ -15,6 +15,8 @@ import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SeedApi
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.model.ApiEvent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -97,20 +99,20 @@ fun SeedApi(
 		}
 
 		override suspend fun sendMessage(
-			chatId: String,
+			chatId: ChatId,
 			serverUrl: ServerUrl,
 			content: String,
 			contentIv: String,
-			nonce: Int,
+			nonce: ServerNonce,
 			signature: String
 		): ApiResponse<Unit> {
 			val jsonRequest = Json.encodeToString(
 				SendMessageRequest.createSendMessageRequest(
-					chatId = chatId,
+					chatId = chatId.value,
 					content = content,
 					contentIv = contentIv,
-					nonce = nonce,
-					signature = signature
+					nonce = nonce.value,
+					signature = signature,
 				)
 			)
 
@@ -139,14 +141,14 @@ fun SeedApi(
 		}
 
 		override suspend fun subscribeToChat(
-			chatId: String,
-			nonce: Int,
-			serverUrl: ServerUrl
+			chatId: ChatId,
+			nonce: ServerNonce,
+			serverUrl: ServerUrl,
 		): ApiResponse<Unit> {
 			val subscribeRequest = SubscribeRequest(
 				type = "subscribe",
-				queueId = chatId,
-				nonce = nonce,
+				queueId = chatId.value,
+				nonce = nonce.value,
 			)
 			val jsonRequest = Json.encodeToString(subscribeRequest)
 
@@ -185,10 +187,10 @@ private fun IncomingContent.SubscribeEvent.toChatEvent(): ApiEvent {
 			val newMessage = this.event.message
 
 			ApiEvent.New(
-				chatId = newMessage.queueId,
+				chatId = ChatId(newMessage.queueId),
 				encryptedContentBase64 = newMessage.content,
 				encryptedContentIv = newMessage.contentIV,
-				nonce = newMessage.nonce,
+				nonce = ServerNonce(newMessage.nonce),
 				signature = newMessage.signature
 			)
 		}
@@ -200,7 +202,7 @@ private fun IncomingContent.SubscribeEvent.toChatEvent(): ApiEvent {
 		}
 
 		is EventContent.Wait -> {
-			ApiEvent.Wait(this.event.queueId)
+			ApiEvent.Wait(ChatId(this.event.queueId))
 		}
 	}
 }

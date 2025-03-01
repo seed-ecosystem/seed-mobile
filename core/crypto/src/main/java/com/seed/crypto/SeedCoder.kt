@@ -9,6 +9,7 @@ import com.seed.domain.crypto.ChatUpdateDecodeResult
 import com.seed.domain.crypto.MessageEncodeResult
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -31,13 +32,13 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		content: String,
 		contentIv: String,
 		signature: String,
-		key: String
+		key: ChatKey,
 	): ChatUpdateDecodeResult? = withContext(Dispatchers.Default) {
 		try {
 			val decodeResult = decodingHelper.decode(
 				encryptedBase64 = content,
 				base64Iv = contentIv,
-				base64Key = key
+				base64Key = key.value
 			)
 
 			val decryptedMessageContent = decodeResult.getOrNull()?.let {
@@ -50,7 +51,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 
 			val verify = hmacHelper.verifyHmacSha256(
 				data = "SIGNATURE:" + decodeResult.getOrNull(),
-				base64Key = key,
+				base64Key = key.value,
 				base64Signature = signature
 			)
 
@@ -67,15 +68,15 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 			}
 		} catch (ex: Exception) {
 			logger.e(tag = "SeedCoder", message = "${ex.message}")
-			return@withContext  null
+			return@withContext null
 		}
 	}
 
 	override suspend fun encodeMessage(
-		chatId: String,
+		chatId: ChatId,
 		title: String,
 		text: String,
-		previousKey: String
+		previousKey: ChatKey,
 	): MessageEncodeResult? = withContext(Dispatchers.Default) {
 		val key = deriveNextKey(previousKey)
 		val decryptedContent = DecryptedMessageContent(
@@ -87,7 +88,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 
 		val encodeResult = encode(
 			content = decryptedContentJson,
-			key = key
+			key = key.value
 		)
 
 		return@withContext encodeResult?.let {
@@ -104,7 +105,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		chatId: ChatId,
 		title: String,
 		text: String,
-		messageKey: String,
+		messageKey: ChatKey,
 	): MessageEncodeResult? = withContext(Dispatchers.Default) {
 		val decryptedContent = DecryptedMessageContent(
 			type = "regular",
@@ -115,7 +116,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 
 		val encodeResult = encode(
 			content = decryptedContentJson,
-			key = messageKey
+			key = messageKey.value
 		)
 
 		return@withContext encodeResult?.let {
@@ -151,10 +152,12 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		}
 	}
 
-	override fun deriveNextKey(key: String): String {
-		return hmacHelper.hmacSha256(
-			data = "NEXT-KEY",
-			base64Key = key
+	override fun deriveNextKey(key: ChatKey): ChatKey {
+		return ChatKey(
+			hmacHelper.hmacSha256(
+				data = "NEXT-KEY",
+				base64Key = key.value
+			)
 		)
 	}
 }

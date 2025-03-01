@@ -17,8 +17,8 @@ class SettingsRepositoryImpl(
 		return nicknameSharedPreferences.getNickname()
 	}
 
-	override fun setMainServerUrl(url: String) {
-		mainServerSharedPreferences.setMainServerUrl(url)
+	override fun setMainServerUrl(url: ServerUrl) {
+		mainServerSharedPreferences.setMainServerUrl(url.value)
 	}
 
 	override fun getMainServerUrl(): ServerUrl? {

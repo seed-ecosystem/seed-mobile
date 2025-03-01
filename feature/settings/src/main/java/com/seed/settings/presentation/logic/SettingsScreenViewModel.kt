@@ -3,6 +3,7 @@ package com.seed.settings.presentation.logic
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seed.domain.data.SettingsRepository
+import com.seed.domain.values.ServerUrl
 import com.seed.settings.presentation.serverList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -65,6 +66,6 @@ class SettingsScreenViewModel(
 			it.copy(selectedServer = new)
 		}
 
-		settingsRepository.setMainServerUrl(new.serverUrl)
+		settingsRepository.setMainServerUrl(ServerUrl(new.serverUrl))
 	}
 }

@@ -3,6 +3,9 @@ package com.seed.domain.usecase
 import com.seed.domain.SeedEngine
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.data.ChatsRepository
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 
 class AddChatUseCase(
@@ -11,13 +14,13 @@ class AddChatUseCase(
 	private val workerStateHandle: SeedWorkerStateHandle,
 ) {
 	suspend operator fun invoke(
-		key: String,
-		keyNonce: Int,
+		key: ChatKey,
+		keyNonce: ServerNonce,
 		name: String,
-		chatId: String,
-		serverUrl: String,
+		chatId: ChatId,
+		serverUrl: ServerUrl,
 	) {
-		engine.connectServer(ServerUrl(serverUrl))
+		engine.connectServer(serverUrl)
 
 		chatRepository.add(
 			key = key,
@@ -30,7 +33,7 @@ class AddChatUseCase(
 		workerStateHandle.subscribe(
 			chatId = chatId,
 			nonce = keyNonce,
-			serverUrl = ServerUrl(serverUrl),
+			serverUrl = serverUrl,
 		)
 	}
 }

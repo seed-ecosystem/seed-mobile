@@ -1,9 +1,10 @@
 package com.seed.domain.crypto
 
 import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
 
 data class MessageEncodeResult(
-	val key: String,
+	val key: ChatKey,
 	val signature: String,
 	val content: String,
 	val contentIv: String,
@@ -19,22 +20,22 @@ interface SeedCoder {
 		content: String,
 		contentIv: String,
 		signature: String,
-		key: String,
+		key: ChatKey,
 	): ChatUpdateDecodeResult?
 
 	suspend fun encodeMessage(
-		chatId: String,
+		chatId: ChatId,
 		title: String,
 		text: String,
-		previousKey: String,
+		previousKey: ChatKey,
 	): MessageEncodeResult?
 
 	suspend fun encodeMessageWithKey(
 		chatId: ChatId,
 		title: String,
 		text: String,
-		messageKey: String
+		messageKey: ChatKey,
 	): MessageEncodeResult?
 
-	fun deriveNextKey(key: String): String
+	fun deriveNextKey(key: ChatKey): ChatKey
 }

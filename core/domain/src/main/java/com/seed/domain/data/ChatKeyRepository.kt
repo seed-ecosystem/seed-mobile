@@ -1,13 +1,17 @@
 package com.seed.domain.data
 
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
+import com.seed.domain.values.ServerNonce
+
 interface ChatKeyRepository {
-	suspend fun insertKeys(chatId: String, keys: List<Pair<String, Int>>)
+	suspend fun insertKeys(chatId: ChatId, keys: List<Pair<ChatKey, ServerNonce>>)
 
-	suspend fun insertChatKey(chatId: String, nonce: Int, key: String)
+	suspend fun insertChatKey(chatId: ChatId, nonce: ServerNonce, key: ChatKey)
 
-	suspend fun getChatKey(chatId: String, nonce: Int): String?
+	suspend fun getChatKey(chatId: ChatId, nonce: ServerNonce): ChatKey?
 
-	suspend fun getLastChatKey(chatId: String): GetLastChatKeyResult?
+	suspend fun getLastChatKey(chatId: ChatId): GetLastChatKeyResult?
 
-	suspend fun getOldestChatKey(chatId: String): GetOldestChatKeyResult?
+	suspend fun getOldestChatKey(chatId: ChatId): GetOldestChatKeyResult?
 }

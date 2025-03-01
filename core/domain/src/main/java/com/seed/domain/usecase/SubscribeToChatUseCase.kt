@@ -5,25 +5,27 @@ import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.WorkerStateHandleEvent
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.model.MessageContent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 
 sealed interface SubscribeToChatUseCaseEvent {
 	data class Stored(
-		val chatId: String,
+		val chatId: ChatId,
 		val messages: List<MessageContent>,
 	) : SubscribeToChatUseCaseEvent
 
 	data class New(
-		val chatId: String,
+		val chatId: ChatId,
 		val messages: List<MessageContent.RegularMessage>,
 	) : SubscribeToChatUseCaseEvent
 
-	data class Wait(val chatId: String) : SubscribeToChatUseCaseEvent
+	data class Wait(val chatId: ChatId) : SubscribeToChatUseCaseEvent
 
 	data class Unknown(
-		val nonce: Int
+		val nonce: ServerNonce,
 	) : SubscribeToChatUseCaseEvent
 
 	data object Reconnection : SubscribeToChatUseCaseEvent
@@ -39,11 +41,11 @@ class SubscribeToChatUseCase(
 	private val logger: Logger,
 ) {
 	suspend operator fun invoke(
-		chatId: String
+		chatId: ChatId,
 	): Flow<SubscribeToChatUseCaseEvent> {
 		return flow {
 			val messages = chatRepository.getMessages(chatId)
-				.sortedBy { it.nonce }
+				.sortedBy { it.nonce.value }
 
 			logger.d(
 				tag = "SubscribeToChatUseCase",

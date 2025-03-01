@@ -1,5 +1,7 @@
 package com.seed.domain.model
 
+import com.seed.domain.values.ServerNonce
+
 sealed interface DecodedChatEvent {
 	data class Stored(
 		val messages: List<MessageContent>,
@@ -10,7 +12,7 @@ sealed interface DecodedChatEvent {
 	) : DecodedChatEvent
 
 	data class Unknown(
-		val nonce: Int
+		val nonce: ServerNonce,
 	) : DecodedChatEvent
 
 	data object Wait : DecodedChatEvent

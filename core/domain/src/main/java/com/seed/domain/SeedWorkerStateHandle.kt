@@ -1,9 +1,12 @@
 package com.seed.domain
 
+import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.SendMessageDto
 import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.MessageContent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
@@ -14,14 +17,14 @@ import kotlinx.coroutines.launch
 
 sealed interface WorkerStateHandleEvent {
 	data class New(
-		val chatId: String,
+		val chatId: ChatId,
 		val messages: List<MessageContent.RegularMessage>,
 	) : WorkerStateHandleEvent
 
-	data class Wait(val chatId: String) : WorkerStateHandleEvent
+	data class Wait(val chatId: ChatId) : WorkerStateHandleEvent
 
 	data class Unknown(
-		val nonce: Int
+		val nonce: ServerNonce,
 	) : WorkerStateHandleEvent
 
 	data object Reconnection : WorkerStateHandleEvent
@@ -42,12 +45,12 @@ interface SeedWorkerStateHandle {
 	): SendMessageResult
 
 	suspend fun subscribe(
-		chatId: String,
-		nonce: Int,
+		chatId: ChatId,
+		nonce: ServerNonce,
 		serverUrl: ServerUrl,
-	)
+	): ApiResponse<Unit>
 
-	suspend fun isWaiting(chatId: String): Boolean
+	suspend fun isWaiting(chatId: ChatId): Boolean
 }
 
 fun SeedWorkerStateHandle(
@@ -57,10 +60,10 @@ fun SeedWorkerStateHandle(
 	logger: Logger,
 ): SeedWorkerStateHandle {
 	val events = MutableSharedFlow<WorkerStateHandleEvent>()
-	val waitingChatIds = mutableListOf<String>()
+	val waitingChatIds = mutableListOf<ChatId>()
 
 	val accumulatedMessageDefers =
-		mutableMapOf<String, MutableList<Pair<Int, Deferred<MessageContent>>>>()
+		mutableMapOf<ChatId, MutableList<Pair<ServerNonce, Deferred<MessageContent>>>>()
 
 	return object : SeedWorkerStateHandle {
 		override val connectionState: StateFlow<SocketConnectionState> = worker.connectionState
@@ -95,10 +98,10 @@ fun SeedWorkerStateHandle(
 						}
 
 						is WorkerEvent.Wait -> {
-							val maxNonce: Int = accumulatedMessageDefers[event.chatId]
-								?.maxBy { it.first }
+							val maxNonce: ServerNonce = accumulatedMessageDefers[event.chatId]
+								?.maxBy { it.first.value }
 								?.first
-								?: 1
+								?: ServerNonce(1)
 
 							keyManager.deriveKeysTillNonce(
 								chatId = event.chatId,
@@ -111,7 +114,7 @@ fun SeedWorkerStateHandle(
 									?.map { it.second }
 									?.awaitAll()
 									?.filterIsInstance<MessageContent.RegularMessage>()
-									?.sortedBy { it.nonce }
+									?.sortedBy { it.nonce.value }
 
 							keyManager.clearBuffer(chatId = event.chatId)
 
@@ -147,10 +150,10 @@ fun SeedWorkerStateHandle(
 			dto: SendMessageDto,
 		): SendMessageResult = worker.sendMessage(dto)
 
-		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl) =
+		override suspend fun subscribe(chatId: ChatId, nonce: ServerNonce, serverUrl: ServerUrl): ApiResponse<Unit> =
 			worker.subscribe(chatId, nonce, serverUrl)
 
-		override suspend fun isWaiting(chatId: String): Boolean =
+		override suspend fun isWaiting(chatId: ChatId): Boolean =
 			waitingChatIds.contains(chatId)
 	}
 }

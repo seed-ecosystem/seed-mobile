@@ -1,11 +1,14 @@
 package com.seed.domain.data
 
 import com.seed.domain.model.MessageContent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 
 data class SendMessageDto(
-	val chatId: String,
-	val nonce: Int,
+	val chatId: ChatId,
+	val nonce: ServerNonce,
 	val encryptedContentBase64: String,
 	val encryptedContentIv: String,
 	val signature: String,
@@ -13,13 +16,13 @@ data class SendMessageDto(
 )
 
 data class GetLastChatKeyResult(
-	val key: String,
-	val keyNonce: Int
+	val key: ChatKey,
+	val keyNonce: ServerNonce,
 )
 
 data class GetOldestChatKeyResult(
-	val key: String,
-	val keyNonce: Int
+	val key: ChatKey,
+	val keyNonce: ServerNonce,
 )
 
 sealed interface SendMessageResult {
@@ -28,9 +31,9 @@ sealed interface SendMessageResult {
 }
 
 interface ChatRepository {
-	suspend fun getMessages(chatId: String): List<MessageContent>
+	suspend fun getMessages(chatId: ChatId): List<MessageContent>
 
-	suspend fun addMessage(chatId: String, message: MessageContent.RegularMessage)
+	suspend fun addMessage(chatId: ChatId, message: MessageContent.RegularMessage)
 
-	suspend fun addMessagesList(chatId: String, messages: List<MessageContent.RegularMessage>)
+	suspend fun addMessagesList(chatId: ChatId, messages: List<MessageContent.RegularMessage>)
 }

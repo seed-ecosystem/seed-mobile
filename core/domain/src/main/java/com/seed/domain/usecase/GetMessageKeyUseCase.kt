@@ -2,15 +2,18 @@ package com.seed.domain.usecase
 
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatKeyRepository
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
+import com.seed.domain.values.ServerNonce
 
 class GetMessageKeyUseCase(
 	private val coder: SeedCoder,
 	private val chatKeyRepository: ChatKeyRepository
 ) {
 	suspend operator fun invoke(
-		chatId: String,
-		nonce: Int,
-	): String? {
+		chatId: ChatId,
+		nonce: ServerNonce,
+	): ChatKey? {
 		val cachedKey = chatKeyRepository.getChatKey(chatId, nonce)
 
 		if (cachedKey != null) return cachedKey
@@ -43,17 +46,18 @@ class GetMessageKeyUseCase(
 	}
 
 	private fun deriveTillNonce(
-		key: String,
-		keyNonce: Int,
-		nonce: Int
-	): String {
+		key: ChatKey,
+		keyNonce: ServerNonce,
+		nonce: ServerNonce,
+	): ChatKey {
 		var tempKey = key
 		var tempKeyNonce = keyNonce
 
 		while (tempKeyNonce != nonce) {
 			tempKey = coder.deriveNextKey(tempKey)
-			tempKeyNonce++
+			tempKeyNonce += 1
 		}
+
 		return tempKey
 	}
 }

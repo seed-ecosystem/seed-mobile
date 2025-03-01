@@ -34,7 +34,7 @@ private suspend fun subscribeToEachChat(
 	chatsRepository.getAllChatsList().forEach { chat ->
 		val lastChatNonce = chatRepository
 			.getMessages(chat.chatId)
-			.maxByOrNull { it.nonce }
+			.maxByOrNull { it.nonce.value }
 			?.nonce ?: chat.firstChatKeyNonce
 
 		val subscriptionResult = worker.subscribe(

@@ -1,10 +1,12 @@
 package com.seed.domain.model
 
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 
 data class Chat(
-	val chatId: String,
+	val chatId: ChatId,
 	val name: String,
-	val firstChatKeyNonce: Int,
+	val firstChatKeyNonce: ServerNonce,
 	val serverUrl: ServerUrl,
 )

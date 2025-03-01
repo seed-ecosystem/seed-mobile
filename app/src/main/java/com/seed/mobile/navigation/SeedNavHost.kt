@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import com.seed.domain.values.ChatId
 import com.seed.main.ChatImportRoute
 import com.seed.main.ChatListRoute
 import com.seed.main.ChatRoute
@@ -108,7 +109,7 @@ fun SeedNavHost(
 					parametersOf(
 						ChatScreenViewModelOptions(
 							destination.chatName,
-							destination.chatId
+							ChatId(destination.chatId),
 						)
 					)
 				},

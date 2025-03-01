@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
+import com.seed.domain.values.ServerNonce
 import com.seed.main.presentation.chat.logic.Message
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -153,7 +154,7 @@ private fun ChatBubblePreviewOthers() {
 	ChatBubble(
 		message = Message.OthersMessage(
 			localNonce = 220,
-			serverNonce = 1,
+			serverNonce = ServerNonce(1),
 			authorName = "Andrew",
 			messageText = LoremIpsum(2).values.first(),
 			dateTime = LocalDateTime.now()

@@ -1,12 +1,11 @@
 package com.seed.main.presentation.chat.logic
 
 import com.seed.domain.api.SocketConnectionState
+import com.seed.domain.values.ServerNonce
 import java.time.LocalDateTime
 
 sealed interface Message {
-//	val nonce: Int
-
-	val serverNonce: Int?
+	val serverNonce: ServerNonce?
 	val localNonce: Int
 
 	val authorName: String
@@ -14,8 +13,7 @@ sealed interface Message {
 	val dateTime: LocalDateTime
 
 	data class SelfMessage(
-//		override val nonce: Int,
-		override val serverNonce: Int?,
+		override val serverNonce: ServerNonce?,
 		override val localNonce: Int,
 		override val authorName: String,
 		override val messageText: String,
@@ -25,8 +23,7 @@ sealed interface Message {
 	) : Message
 
 	data class OthersMessage(
-//		override val nonce: Int,
-		override val serverNonce: Int,
+		override val serverNonce: ServerNonce,
 		override val localNonce: Int,
 		override val authorName: String,
 		override val messageText: String,

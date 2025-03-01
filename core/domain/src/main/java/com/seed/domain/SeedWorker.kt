@@ -10,6 +10,7 @@ import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.ApiEvent
 import com.seed.domain.model.MessageContent
 import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -21,15 +22,17 @@ import kotlinx.coroutines.launch
 
 sealed interface WorkerEvent {
 	data class DeferredNewEvent(
-		val chatId: String,
-		val nonce: Int,
+		val chatId: ChatId,
+		val nonce: ServerNonce,
 		val deferredEvent: Deferred<MessageContent>
 	) : WorkerEvent
 
-	data class Wait(val chatId: String) : WorkerEvent
+	data class Wait(
+		val chatId: ChatId,
+	) : WorkerEvent
 
 	data class Unknown(
-		val nonce: Int
+		val nonce: ServerNonce,
 	) : WorkerEvent
 
 	data object Reconnection : WorkerEvent
@@ -50,8 +53,8 @@ interface SeedWorker {
 	): SendMessageResult
 
 	suspend fun subscribe(
-		chatId: String,
-		nonce: Int,
+		chatId: ChatId,
+		nonce: ServerNonce,
 		serverUrl: ServerUrl,
 	): ApiResponse<Unit>
 }
@@ -162,7 +165,7 @@ fun SeedWorker(
 			}
 		}
 
-		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl): ApiResponse<Unit> {
+		override suspend fun subscribe(chatId: ChatId, nonce: ServerNonce, serverUrl: ServerUrl): ApiResponse<Unit> {
 			return seedApi.subscribeToChat(chatId, nonce, serverUrl)
 		}
 	}

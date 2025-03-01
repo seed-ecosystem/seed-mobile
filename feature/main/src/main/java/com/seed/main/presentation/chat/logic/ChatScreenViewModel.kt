@@ -11,6 +11,8 @@ import com.seed.domain.usecase.SendMessageResult
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCaseEvent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -59,7 +61,7 @@ private data class ChatScreenVmState(
 
 data class ChatScreenViewModelOptions(
 	val chatName: String,
-	val chatId: String,
+	val chatId: ChatId,
 )
 
 class ChatScreenViewModel(
@@ -255,7 +257,7 @@ class ChatScreenViewModel(
 		onMessageAdd()
 	}
 
-	private fun updateMessageSendState(localNonce: Int, serverNonce: Int?, isFailed: Boolean) {
+	private fun updateMessageSendState(localNonce: Int, serverNonce: ServerNonce?, isFailed: Boolean) {
 		val messages = _state.value.messages
 
 		val newMessages = messages?.map { message ->

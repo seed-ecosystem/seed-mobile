@@ -3,6 +3,10 @@ package com.seed.main.presentation.chatimport.logic
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seed.domain.usecase.AddChatUseCase
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
+import com.seed.domain.values.ServerNonce
+import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -57,11 +61,11 @@ class ChatImportScreenViewModel(
 
 			viewModelScope.launch {
 				addChatUseCase(
-					key = parsedChat.privateKey,
-					keyNonce = parsedChat.nonce,
+					key = ChatKey(parsedChat.privateKey),
+					keyNonce = ServerNonce(parsedChat.nonce),
 					name = parsedChat.chatName,
-					chatId = parsedChat.chatId,
-					serverUrl = parsedChat.serverAddress
+					chatId = ChatId(parsedChat.chatId),
+					serverUrl = ServerUrl(parsedChat.serverAddress)
 				)
 
 				onSuccess()

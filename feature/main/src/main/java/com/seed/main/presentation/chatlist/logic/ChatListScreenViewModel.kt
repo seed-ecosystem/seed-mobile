@@ -67,7 +67,7 @@ class ChatListScreenViewModel(
 
 private fun Chat.toChatListItem(): ChatListItem {
 	return ChatListItem(
-		chatId = this.chatId,
+		chatId = this.chatId.value,
 		chatName = this.name,
 		lastSentMessageDateTime = LocalDateTime.now(), // todo
 		lastSentMessageText = "N/A" // todo

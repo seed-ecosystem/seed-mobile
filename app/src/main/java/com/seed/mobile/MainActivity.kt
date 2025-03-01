@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.seed.api.util.SeedSocket
 import com.seed.domain.GetApplicationCoroutineScope
+import com.seed.domain.Logger
 import com.seed.domain.SeedEngine
 import com.seed.domain.SeedWorker
 import com.seed.domain.SeedWorkerStateHandle
@@ -88,6 +89,7 @@ class MainActivity : ComponentActivity() {
 			chatsRepository = koin.get<ChatsRepository>(),
 			chatRepository = koin.get<ChatRepository>(),
 			scope = lifecycleScope,
+			logger = koin.get<Logger>(),
 		)
 
 		lifecycleScope.launch {

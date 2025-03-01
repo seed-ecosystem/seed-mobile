@@ -2,6 +2,9 @@ package com.seed.domain
 
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatKeyRepository
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ChatKey
+import com.seed.domain.values.ServerNonce
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.system.measureNanoTime
@@ -12,22 +15,22 @@ interface KeyManager {
 	 * Generates and stores keys sequentially from last persisted till final nonce
 	 */
 	suspend fun deriveKeysTillNonce(
-		chatId: String,
-		tillNonce: Int
+		chatId: ChatId,
+		tillNonce: ServerNonce,
 	)
 
 	/**
 	 * Retrieves key from buffer. If absent, checks persistence. If still absent, derives and persists new key.
 	 */
 	suspend fun getKey(
-		chatId: String,
-		nonce: Int,
-	): String?
+		chatId: ChatId,
+		nonce: ServerNonce,
+	): ChatKey?
 
 	/**
 	 * Clears buffer for specific chat id
 	 */
-	fun clearBuffer(chatId: String)
+	fun clearBuffer(chatId: ChatId)
 
 	/**
 	 * Clears entire buffer
@@ -42,14 +45,14 @@ fun KeyManager(
 ): KeyManager {
 	return object : KeyManager {
 		// TODO: use value objects
-		private val derivedKeyCache = hashMapOf<Pair<String, Int>, String>()
+		private val derivedKeyCache = hashMapOf<Pair<ChatId, ServerNonce>, ChatKey>()
 
 		override suspend fun deriveKeysTillNonce(
-			chatId: String,
-			tillNonce: Int
+			chatId: ChatId,
+			tillNonce: ServerNonce
 		) {
 			val lastKey = chatKeyRepository.getLastChatKey(chatId) ?: return
-			val startKeyNonce = lastKey.keyNonce + 1
+			val startKeyNonce: ServerNonce = lastKey.keyNonce + 1
 
 			if (tillNonce <= lastKey.keyNonce) return
 
@@ -61,7 +64,7 @@ fun KeyManager(
 
 					previousKey = result
 
-					derivedKeyCache[chatId to nonce] = result
+					derivedKeyCache[chatId to ServerNonce(nonce)] = result
 				}
 			}
 
@@ -77,7 +80,7 @@ fun KeyManager(
 			)
 		}
 
-		override suspend fun getKey(chatId: String, nonce: Int): String? {
+		override suspend fun getKey(chatId: ChatId, nonce: ServerNonce): ChatKey? {
 			val cachedKey = derivedKeyCache[chatId to nonce]
 				?: chatKeyRepository.getChatKey(chatId, nonce)
 
@@ -108,7 +111,7 @@ fun KeyManager(
 			return key
 		}
 
-		override fun clearBuffer(chatId: String) {
+		override fun clearBuffer(chatId: ChatId) {
 			derivedKeyCache
 				.filter {
 					it.key.first == chatId
@@ -123,17 +126,18 @@ fun KeyManager(
 		}
 
 		private fun deriveTillNonce(
-			key: String,
-			keyNonce: Int,
-			nonce: Int,
-		): String {
+			key: ChatKey,
+			keyNonce: ServerNonce,
+			nonce: ServerNonce,
+		): ChatKey {
 			var tempKey = key
 			var tempKeyNonce = keyNonce
 
 			while (tempKeyNonce != nonce) {
 				tempKey = coder.deriveNextKey(tempKey)
-				tempKeyNonce++
+				tempKeyNonce += 1
 			}
+
 			return tempKey
 		}
 	}

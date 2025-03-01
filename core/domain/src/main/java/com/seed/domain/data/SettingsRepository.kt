@@ -7,7 +7,7 @@ interface SettingsRepository {
 
 	fun getNickname(): String?
 
-	fun setMainServerUrl(url: String)
+	fun setMainServerUrl(url: ServerUrl)
 
 	fun getMainServerUrl(): ServerUrl?
 }
