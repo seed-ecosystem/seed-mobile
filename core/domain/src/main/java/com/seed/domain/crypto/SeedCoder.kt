@@ -29,7 +29,7 @@ interface SeedCoder {
 		previousKey: String,
 	): MessageEncodeResult?
 
-	suspend fun encodeFirstMessage(
+	suspend fun encodeMessageWithKey(
 		chatId: ChatId,
 		title: String,
 		text: String,

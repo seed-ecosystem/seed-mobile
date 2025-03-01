@@ -100,7 +100,7 @@ fun SeedCoder(logger: Logger): SeedCoder = object : SeedCoder {
 		}
 	}
 
-	override suspend fun encodeFirstMessage(
+	override suspend fun encodeMessageWithKey(
 		chatId: ChatId,
 		title: String,
 		text: String,

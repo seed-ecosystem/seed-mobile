@@ -15,5 +15,8 @@ interface ChatsRepository {
 	suspend fun add(chatId: String, key: String, keyNonce: Int, name: String, serverUrl: String)
 
 	suspend fun delete(chatId: String)
+
 	suspend fun getChatServerUrl(chatId: ChatId): ServerUrl
+
+	suspend fun getChat(chatId: ChatId): Chat?
 }

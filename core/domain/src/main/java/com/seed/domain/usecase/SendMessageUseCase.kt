@@ -48,41 +48,8 @@ class SendMessageUseCase(
 			.maxOfOrNull { it.nonce }
 
 		if (lastMessageNonce == null) {
-			val messageKey = keyManager.getKey(
-				chatId = chatId,
-				nonce = 0,
-			)
-
-			if (messageKey == null) return SendMessageResult.Failure
-
-
-			val encodingResult = seedCoder
-				.encodeFirstMessage(
-					chatId = ChatId(chatId),
-					title = author,
-					text = messageText,
-					messageKey = messageKey,
-				)
-
-			if (encodingResult == null) return SendMessageResult.Failure
-
-			val dto = SendMessageDto(
-				chatId = chatId,
-				nonce = 0,
-				encryptedContentBase64 = encodingResult.content,
-				encryptedContentIv = encodingResult.contentIv,
-				signature = encodingResult.signature,
-				serverUrl = serverUrl,
-			)
-
-			val sendMessageResult = seedWorkerStateHandle.sendMessage(dto)
-
-			if (sendMessageResult is com.seed.domain.data.SendMessageResult.Success)
-				return SendMessageResult.Success(0)
-
-			return SendMessageResult.Failure
+			return sendMessageWhenNoLastMessage(chatId, author, messageText, serverUrl)
 		}
-
 
 		val tillNonce = lastMessageNonce + nonceAttempts
 		val startNonce = lastMessageNonce + 1
@@ -138,6 +105,52 @@ class SendMessageUseCase(
 			if (sendMessageResult is com.seed.domain.data.SendMessageResult.Success)
 				return SendMessageResult.Success(currentNonce)
 		}
+
+		return SendMessageResult.Failure
+	}
+
+	private suspend fun sendMessageWhenNoLastMessage(
+		chatId: String,
+		author: String,
+		messageText: String,
+		serverUrl: ServerUrl
+	): SendMessageResult {
+		val messageNonce = chatsRepository
+			.getChat(ChatId(chatId))
+			?.firstChatKeyNonce
+
+		if (messageNonce == null) return SendMessageResult.Failure
+
+		val messageKey = keyManager.getKey(
+			chatId = chatId,
+			nonce = messageNonce,
+		)
+
+		if (messageKey == null) return SendMessageResult.Failure
+
+		val encodingResult = seedCoder
+			.encodeMessageWithKey(
+				chatId = ChatId(chatId),
+				title = author,
+				text = messageText,
+				messageKey = messageKey,
+			)
+
+		if (encodingResult == null) return SendMessageResult.Failure
+
+		val dto = SendMessageDto(
+			chatId = chatId,
+			nonce = messageNonce,
+			encryptedContentBase64 = encodingResult.content,
+			encryptedContentIv = encodingResult.contentIv,
+			signature = encodingResult.signature,
+			serverUrl = serverUrl,
+		)
+
+		val sendMessageResult = seedWorkerStateHandle.sendMessage(dto)
+
+		if (sendMessageResult is com.seed.domain.data.SendMessageResult.Success)
+			return SendMessageResult.Success(messageNonce)
 
 		return SendMessageResult.Failure
 	}

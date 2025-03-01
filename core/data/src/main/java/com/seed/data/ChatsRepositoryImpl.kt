@@ -38,6 +38,10 @@ class ChatsRepositoryImpl(
 		return@withContext ServerUrl(chatDao.getServerUrlByChatId(chatId.value))
 	}
 
+	override suspend fun getChat(chatId: ChatId): Chat? = withContext(Dispatchers.IO) {
+		return@withContext chatDao.getById(chatId.value)?.toChat()
+	}
+
 	override suspend fun add(
 		chatId: String,
 		key: String,
