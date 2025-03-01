@@ -53,7 +53,7 @@ interface SeedWorker {
 		chatId: String,
 		nonce: Int,
 		serverUrl: ServerUrl,
-	)
+	): ApiResponse<Unit>
 }
 
 fun SeedWorker(
@@ -162,8 +162,8 @@ fun SeedWorker(
 			}
 		}
 
-		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl) {
-			seedApi.subscribeToChat(chatId, nonce, serverUrl)
+		override suspend fun subscribe(chatId: String, nonce: Int, serverUrl: ServerUrl): ApiResponse<Unit> {
+			return seedApi.subscribeToChat(chatId, nonce, serverUrl)
 		}
 	}
 }
