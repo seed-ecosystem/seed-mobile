@@ -3,4 +3,9 @@
     <string name="enter_chat_key">Enter chat string</string>
     <string name="proceed">Proceed</string>
     <string name="message_field_placeholder">Message</string>
+    <string name="create_new_chat">Create new chat</string>
+    <string name="import_chat">Import chat</string>
+    <string name="chat_name">Chat name</string>
+    <string name="server_url">Server url</string>
+    <string name="create">Create</string>
 </resources>

@@ -19,4 +19,7 @@ interface NavDestination {
 
 	@Serializable
 	data object ChatImportDestination : NavDestination
+
+	@Serializable
+	data object CreateChatDestination : NavDestination
 }

@@ -26,6 +26,7 @@ fun ChatListScreen(
 	state: ChatListScreenUiState,
 	onChatClick: (ChatListItem) -> Unit,
 	onChatAddClick: () -> Unit,
+	onImportChatClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	Scaffold(
@@ -40,6 +41,7 @@ fun ChatListScreen(
 		},
 		topBar = {
 			ChatListScreenTopBar(
+				onImportChatClick = onImportChatClick,
 				modifier = Modifier
 			)
 		},
@@ -78,6 +80,7 @@ private fun ChatListScreenPreview() {
 		),
 		onChatClick = {},
 		onChatAddClick = {},
+		onImportChatClick = {},
 		modifier = Modifier
 			.fillMaxSize()
 	)

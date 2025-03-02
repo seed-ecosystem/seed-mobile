@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.seed.domain.values.ChatId
+import com.seed.main.ChatCreateScreenRoute
 import com.seed.main.ChatImportRoute
 import com.seed.main.ChatListRoute
 import com.seed.main.ChatRoute
@@ -46,6 +47,7 @@ fun SeedNavHost(
 		) {
 			composable<NavDestination.ChatListDestination> {
 				ChatListRoute(
+					goToAddChat = { navHostController.navigate(NavDestination.CreateChatDestination) },
 					goToChatImport = { navHostController.navigate(NavDestination.ChatImportDestination) },
 					goToChat = {
 						navHostController.navigate(
@@ -56,7 +58,7 @@ fun SeedNavHost(
 						)
 					},
 					vm = koinViewModel(),
-					modifier = commonModifier
+					modifier = commonModifier,
 				)
 			}
 
@@ -124,6 +126,16 @@ fun SeedNavHost(
 				},
 				vm = koinViewModel(),
 				modifier = commonModifier
+			)
+		}
+
+		composable<NavDestination.CreateChatDestination> {
+			ChatCreateScreenRoute(
+				goBack = {
+					navHostController.navigate(NavDestination.ChatListDestination)
+				},
+				vm = koinViewModel(),
+				modifier = commonModifier,
 			)
 		}
 	}

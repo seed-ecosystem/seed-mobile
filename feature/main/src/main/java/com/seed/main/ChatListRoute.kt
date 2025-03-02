@@ -12,9 +12,10 @@ import com.seed.main.presentation.chatlist.ui.ChatListScreen
 @Composable
 fun ChatListRoute(
 	goToChatImport: () -> Unit,
+	goToAddChat: () -> Unit,
 	goToChat: (ChatListItem) -> Unit,
 	vm: ChatListScreenViewModel,
-	modifier: Modifier = Modifier
+	modifier: Modifier = Modifier,
 ) {
 	val state by vm.state.collectAsState()
 
@@ -25,7 +26,8 @@ fun ChatListRoute(
 	ChatListScreen(
 		state = state,
 		onChatClick = goToChat,
-		onChatAddClick = goToChatImport,
+		onChatAddClick = goToAddChat,
+		onImportChatClick = goToChatImport,
 		modifier = modifier
 	)
 }
