@@ -14,11 +14,11 @@ class GetChatUrlUseCase(
 	private val chatRepository: ChatRepository,
 	private val keyManager: KeyManager,
 ) {
-	suspend operator fun invoke(chatId: ChatId): String? = getChatShareUrl(chatId.value)
+	suspend operator fun invoke(chatId: ChatId): String? = getChatShareUrl(chatId)
 
-	private suspend fun getChatShareUrl(chatId: String): String? {
+	private suspend fun getChatShareUrl(chatId: ChatId): String? {
 		val chat = chatsRepository.getChat(
-			chatId = ChatId(chatId)
+			chatId = chatId
 		)
 
 		if (chat == null) return null
@@ -26,31 +26,32 @@ class GetChatUrlUseCase(
 		val serverUrl = chat.serverUrl
 		val chatName = chat.name
 
-		val maxMessageNonce = chatRepository.getMessages(chat.chatId)
+		val shareNonce = chatRepository.getMessages(chat.chatId)
 			.maxByOrNull { it.nonce.value }
 			?.nonce
+			?.plus(1)
 
-		if (maxMessageNonce == null) {
+		if (shareNonce == null) {
 			val firstChatKeyNonce = chat.firstChatKeyNonce
-			val firstChatKey = keyManager.getKey(ChatId(chatId), firstChatKeyNonce)
+			val firstChatKey = keyManager.getKey(chatId, firstChatKeyNonce)
 
 			return buildFinalUrl(
 				serverUrl = serverUrl,
 				chatName = chatName,
-				chatId = chatId,
+				chatId = chatId.value,
 				nonce = firstChatKeyNonce,
 				key = firstChatKey ?: return null
 			)
 		}
 
 		val lastKey = keyManager.getKey(
-			chatId = ChatId(chatId),
-			nonce = maxMessageNonce,
+			chatId = chatId,
+			nonce = shareNonce,
 		)
 
 		if (lastKey == null) return null
 
-		val finalUrl = buildFinalUrl(serverUrl, chatName, chatId, maxMessageNonce, lastKey)
+		val finalUrl = buildFinalUrl(serverUrl, chatName, chatId.value, shareNonce, lastKey)
 
 
 		return finalUrl
