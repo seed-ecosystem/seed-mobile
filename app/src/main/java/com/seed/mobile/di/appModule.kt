@@ -21,6 +21,7 @@ import com.seed.domain.data.ChatsRepository
 import com.seed.domain.data.SettingsRepository
 import com.seed.domain.usecase.AddChatUseCase
 import com.seed.domain.usecase.CreateChatUseCase
+import com.seed.domain.usecase.GetChatUrlUseCase
 import com.seed.domain.usecase.GetMessageKeyUseCase
 import com.seed.domain.usecase.SendMessageUseCase
 import com.seed.domain.usecase.SubscribeToChatUseCase
@@ -34,6 +35,7 @@ val appModule = module {
 	factory { GetMessageKeyUseCase(get(), get()) }
 	factory { AddChatUseCase(get(), get(), get()) }
 	factory { CreateChatUseCase(get(), get(), get()) }
+	factory { GetChatUrlUseCase(get(), get(), get()) }
 
 	single<KeyManager> { KeyManager(get(), get(), get()) }
 
