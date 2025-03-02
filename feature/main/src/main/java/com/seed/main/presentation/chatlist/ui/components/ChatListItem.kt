@@ -1,7 +1,8 @@
 package com.seed.main.presentation.chatlist.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,16 +28,21 @@ import com.seed.main.presentation.chatlist.logic.ChatListItem
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatListItem(
 	onClick: (ChatListItem) -> Unit,
+	onLongClick: (ChatListItem) -> Unit,
 	chat: ChatListItem,
 	modifier: Modifier = Modifier
 ) {
 	Row(
 		verticalAlignment = Alignment.CenterVertically,
 		modifier = modifier
-			.clickable { onClick(chat) }
+			.combinedClickable(
+				onClick = { onClick(chat) },
+				onLongClick = { onLongClick(chat) }
+			)
 			.padding(horizontal = 8.dp)
 	) {
 		Box(
@@ -90,6 +96,7 @@ fun ChatListItem(
 fun ChatListItemPreview() {
 	ChatListItem(
 		onClick = {},
+		onLongClick = {},
 		chat = ChatListItem(
 			chatId = "",
 			chatName = "Some awesome group",

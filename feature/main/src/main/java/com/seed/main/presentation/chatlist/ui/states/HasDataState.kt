@@ -11,6 +11,7 @@ import com.seed.main.presentation.chatlist.ui.components.ChatList
 @Composable
 fun HasDataState(
 	onChatClick: (ChatListItem) -> Unit,
+	onLongChatClick: (ChatListItem) -> Unit,
 	state: ChatListScreenUiState.HasData,
 	modifier: Modifier = Modifier
 ) {
@@ -19,6 +20,7 @@ fun HasDataState(
 	) {
 		ChatList(
 			onChatClick = onChatClick,
+			onLongChatClick = onLongChatClick,
 			chats = state.chats,
 			modifier = Modifier
 				.fillMaxSize()

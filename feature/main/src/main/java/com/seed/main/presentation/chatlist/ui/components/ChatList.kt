@@ -14,6 +14,7 @@ import com.seed.main.presentation.chatlist.logic.ChatListItem
 @Composable
 fun ChatList(
 	onChatClick: (ChatListItem) -> Unit,
+	onLongChatClick: (ChatListItem) -> Unit,
 	chats: List<ChatListItem>,
 	modifier: Modifier = Modifier
 ) {
@@ -28,6 +29,7 @@ fun ChatList(
 		items(chats) { chat ->
 			ChatListItem(
 				onClick = onChatClick,
+				onLongClick = onLongChatClick,
 				chat = chat,
 				modifier = Modifier.fillMaxWidth()
 			)

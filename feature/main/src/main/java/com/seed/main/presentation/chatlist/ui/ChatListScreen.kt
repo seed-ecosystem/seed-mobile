@@ -25,6 +25,7 @@ import com.seed.main.presentation.chatlist.ui.states.NoChatsState
 fun ChatListScreen(
 	state: ChatListScreenUiState,
 	onChatClick: (ChatListItem) -> Unit,
+	onLongChatClick: (ChatListItem) -> Unit,
 	onChatAddClick: () -> Unit,
 	onImportChatClick: () -> Unit,
 	modifier: Modifier = Modifier
@@ -53,7 +54,7 @@ fun ChatListScreen(
 
 		when (state) {
 			is ChatListScreenUiState.HasData -> {
-				HasDataState(onChatClick, state, commonModifier)
+				HasDataState(onChatClick, onLongChatClick, state, commonModifier)
 			}
 
 			is ChatListScreenUiState.Loading -> {
@@ -79,6 +80,7 @@ private fun ChatListScreenPreview() {
 			generateRandomChats()
 		),
 		onChatClick = {},
+		onLongChatClick = {},
 		onChatAddClick = {},
 		onImportChatClick = {},
 		modifier = Modifier

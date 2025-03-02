@@ -2,14 +2,18 @@ package com.seed.main.presentation.chatlist.logic
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seed.domain.KeyManager
+import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.model.Chat
+import com.seed.domain.values.ChatId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 import java.time.LocalDateTime
 
 private data class ChatListScreenVmState(
@@ -33,7 +37,9 @@ private data class ChatListScreenVmState(
 }
 
 class ChatListScreenViewModel(
+	private val keyManager: KeyManager,
 	private val chatsRepository: ChatsRepository,
+	private val chatRepository: ChatRepository,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(ChatListScreenVmState())
 
@@ -62,6 +68,41 @@ class ChatListScreenViewModel(
 					}
 				}
 		}
+	}
+
+	suspend fun getChatShareUrl(chatId: String): String? {
+		val chat = chatsRepository.getChat(
+			chatId = ChatId(chatId)
+		)
+
+		if (chat == null) return null // TODO
+
+		val serverUrl = chat.serverUrl
+		val chatName = chat.name
+
+		val maxMessageNonce = chatRepository.getMessages(chat.chatId)
+			.maxByOrNull { it.nonce.value }
+			?.nonce
+
+		if (maxMessageNonce == null) return null // TODO
+
+		val lastKey = keyManager.getKey(
+			chatId = ChatId(chatId),
+			nonce = maxMessageNonce,
+		)
+
+		if (lastKey == null) return null // TODO
+
+		val encodedServerUrl = URLEncoder.encode(serverUrl.value, "UTF-8")
+		val encodedChatName = URLEncoder.encode(chatName, "UTF-8")
+		val encodedChatId = URLEncoder.encode(chatId, "UTF-8")
+		val encodedNonce = URLEncoder.encode(maxMessageNonce.value.toString(), "UTF-8")
+		val encodedKey = URLEncoder.encode(lastKey.value, "UTF-8")
+
+		val finalUrl = "https://seed-ecosystem.github.io/seed-web/#/import/$encodedChatName/$encodedChatId/$encodedKey/$encodedNonce/$encodedServerUrl"
+
+
+		return finalUrl
 	}
 }
 
