@@ -39,7 +39,7 @@ val appModule = module {
 
 	single<KeyManager> { KeyManager(get(), get(), get()) }
 
-	single<ChatRepository> { ChatRepositoryImpl(get(), get(), get(), get()) }
+	single<ChatRepository> { ChatRepositoryImpl(get(), get()) }
 	factory<ChatsRepository> { ChatsRepositoryImpl(get(), get()) }
 	factory<ChatKeyRepository> { ChatKeyRepositoryImpl(get()) }
 	factory<SettingsRepository> { SettingsRepositoryImpl(get(), get()) }

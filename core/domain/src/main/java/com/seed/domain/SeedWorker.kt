@@ -80,7 +80,10 @@ fun SeedWorker(
 
 			if (messageKey == null) {
 				logger.e(tag = "SeedWorker", message = "chatKey is null for $apiEvent")
-				return MessageContent.UnknownMessage(apiEvent.nonce)
+				return MessageContent.UnknownMessage(
+					apiEvent.nonce,
+					receiveTimestamp = getCurrentTimestamp()
+				)
 			}
 
 			val decodeResult = coder.decodeChatUpdate(
@@ -93,13 +96,17 @@ fun SeedWorker(
 			if (decodeResult == null) {
 				logger.e(tag = "SeedWorker", message = "Unable to decode $apiEvent")
 
-				return MessageContent.UnknownMessage(apiEvent.nonce)
+				return MessageContent.UnknownMessage(
+					nonce = apiEvent.nonce,
+					receiveTimestamp = getCurrentTimestamp(),
+				)
 			}
 
 			return MessageContent.RegularMessage(
 				nonce = apiEvent.nonce,
 				title = decodeResult.title,
-				text = decodeResult.text
+				text = decodeResult.text,
+				receiveTimestamp = getCurrentTimestamp(),
 			)
 		}
 

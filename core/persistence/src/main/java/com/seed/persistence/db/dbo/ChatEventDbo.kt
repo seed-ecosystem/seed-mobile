@@ -16,4 +16,5 @@ data class ChatEventDbo(
 	val eventType: ChatEventType,
 	val title: String,
 	val text: String,
+	val receiveTimestamp: Long,
 )

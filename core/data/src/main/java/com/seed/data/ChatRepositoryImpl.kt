@@ -1,24 +1,16 @@
 package com.seed.data
 
 import com.seed.domain.Logger
-import com.seed.domain.api.ApiResponse
-import com.seed.domain.api.SeedApi
 import com.seed.domain.data.ChatRepository
-import com.seed.domain.data.ChatsRepository
-import com.seed.domain.data.SendMessageDto
-import com.seed.domain.data.SendMessageResult
 import com.seed.domain.model.MessageContent
 import com.seed.domain.values.ChatId
 import com.seed.domain.values.ServerNonce
-import com.seed.domain.values.ServerUrl
 import com.seed.persistence.db.dao.ChatEventDao
 import com.seed.persistence.db.dbo.ChatEventDbo
 import com.seed.persistence.db.dbo.ChatEventType
 
 class ChatRepositoryImpl(
 	private val chatEventDao: ChatEventDao,
-	private val messagingApi: SeedApi,
-	private val chatsRepository: ChatsRepository,
 	private val logger: Logger,
 ) : ChatRepository {
 	override suspend fun getMessages(chatId: ChatId): List<MessageContent> =
@@ -28,6 +20,7 @@ class ChatRepositoryImpl(
 					nonce = ServerNonce(it.nonce),
 					title = it.title,
 					text = it.text,
+					receiveTimestamp = it.receiveTimestamp,
 				)
 			}
 
@@ -53,6 +46,7 @@ private fun MessageContent.RegularMessage.toChatEventDbo(chatId: ChatId): ChatEv
 		nonce = this.nonce.value,
 		eventType = ChatEventType.NewMessage,
 		title = this.title,
-		this.text,
+		text = this.text,
+		receiveTimestamp = this.receiveTimestamp,
 	)
 }
