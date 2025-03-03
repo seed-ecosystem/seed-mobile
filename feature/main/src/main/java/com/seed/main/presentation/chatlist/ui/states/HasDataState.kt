@@ -6,12 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.seed.main.presentation.chatlist.logic.ChatListItem
 import com.seed.main.presentation.chatlist.logic.ChatListScreenUiState
+import com.seed.main.presentation.chatlist.logic.ChatState
 import com.seed.main.presentation.chatlist.ui.components.ChatList
 
 @Composable
 fun HasDataState(
-	onChatClick: (ChatListItem) -> Unit,
-	onLongChatClick: (ChatListItem) -> Unit,
+	onChatClick: (ChatState) -> Unit,
+	onLongChatClick: (ChatState) -> Unit,
 	state: ChatListScreenUiState.HasData,
 	modifier: Modifier = Modifier
 ) {

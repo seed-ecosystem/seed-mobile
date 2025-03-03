@@ -24,16 +24,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.seed.main.presentation.chatlist.logic.ChatListItem
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import com.seed.domain.values.ChatId
+import com.seed.main.presentation.chatlist.logic.ChatState
+import com.seed.main.presentation.chatlist.logic.LastSentMessage
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatListItem(
-	onClick: (ChatListItem) -> Unit,
-	onLongClick: (ChatListItem) -> Unit,
-	chat: ChatListItem,
+	onClick: (ChatState) -> Unit,
+	onLongClick: (ChatState) -> Unit,
+	chat: ChatState,
 	modifier: Modifier = Modifier
 ) {
 	Row(
@@ -63,27 +63,30 @@ fun ChatListItem(
 				modifier = Modifier.fillMaxWidth(),
 			) {
 				Text(
-					text = chat.chatName,
+					text = chat.name,
 					fontWeight = FontWeight.Bold,
 					overflow = TextOverflow.Ellipsis,
 					maxLines = 1,
 					style = MaterialTheme.typography.titleMedium,
 				)
 
-				Spacer(Modifier.weight(1f))
-
-				Text(
-					text = chat.lastSentMessageDateTime.format(DateTimeFormatter.ofPattern("HH:mm")),
-					fontWeight = FontWeight.Light,
-					color = MaterialTheme.colorScheme.secondary,
-					style = MaterialTheme.typography.labelLarge
-				)
+//				Spacer(Modifier.weight(1f))
+//
+//				Text(
+//					text = chat.lastSentMessage?.receiveTimestamp?.toString() ?: "",
+//					fontWeight = FontWeight.Light,
+//					color = MaterialTheme.colorScheme.secondary,
+//					style = MaterialTheme.typography.labelLarge
+//				)
 			}
 
 			Spacer(Modifier.height(1.dp))
 
+			val author = chat.lastSentMessage?.author?.plus(":") ?: ""
+			val text = "$author ${chat.lastSentMessage?.text ?: "no messages yet"}".trimIndent() // todo
+
 			Text(
-				text = chat.lastSentMessageText,
+				text = text,
 				overflow = TextOverflow.Ellipsis,
 				maxLines = 2,
 			)
@@ -97,11 +100,14 @@ fun ChatListItemPreview() {
 	ChatListItem(
 		onClick = {},
 		onLongClick = {},
-		chat = ChatListItem(
-			chatId = "",
-			chatName = "Some awesome group",
-			lastSentMessageDateTime = LocalDateTime.now(),
-			lastSentMessageText = "Some last message text too long long lorem ipsum dolor. some last message text too long long lorem ipsum dolor. some last message text too long long lorem"
+		chat = ChatState(
+			chatId = ChatId(""),
+			name = "Some awesome group",
+			lastSentMessage = LastSentMessage(
+				"Demn",
+				"Some last message text too long long lorem ipsum dolor. some last message text too long long lorem ipsum dolor. some last message text too long long lorem",
+				receiveTimestamp = System.currentTimeMillis()
+			)
 		),
 		modifier = Modifier.fillMaxWidth()
 	)

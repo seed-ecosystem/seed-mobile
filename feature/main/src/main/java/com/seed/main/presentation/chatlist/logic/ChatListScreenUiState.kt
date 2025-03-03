@@ -11,7 +11,7 @@ data class ChatListItem(
 
 sealed interface ChatListScreenUiState {
 	data class HasData(
-		val chats: List<ChatListItem>
+		val chats: ChatListState,
 	) : ChatListScreenUiState
 
 	data object NoChats : ChatListScreenUiState

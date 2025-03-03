@@ -49,11 +49,11 @@ fun SeedNavHost(
 				ChatListRoute(
 					goToAddChat = { navHostController.navigate(NavDestination.CreateChatDestination) },
 					goToChatImport = { navHostController.navigate(NavDestination.ChatImportDestination) },
-					goToChat = {
+					goToChat = { chatId: String, name: String ->
 						navHostController.navigate(
 							NavDestination.ChatDestination(
-								chatId = it.chatId,
-								chatName = it.chatName
+								chatId = chatId,
+								chatName = name
 							)
 						)
 					},

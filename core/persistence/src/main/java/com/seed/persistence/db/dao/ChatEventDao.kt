@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.seed.persistence.db.dbo.ChatEventDbo
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChatEventDao {
@@ -19,4 +20,10 @@ interface ChatEventDao {
 
 	@Query("SELECT * FROM ChatEventDbo")
 	suspend fun getAll(): List<ChatEventDbo>
+
+	@Query("SELECT * FROM ChatEventDbo")
+	fun getAllFlow(): Flow<List<ChatEventDbo>>
+
+	@Query("SELECT * FROM chateventdbo WHERE chatId = :chatId ORDER BY receiveTimestamp DESC LIMIT 1")
+	suspend fun getLastByChatId(chatId: String): ChatEventDbo?
 }

@@ -9,13 +9,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.seed.main.presentation.chatlist.logic.ChatListItem
+import com.seed.main.presentation.chatlist.logic.ChatListState
+import com.seed.main.presentation.chatlist.logic.ChatState
 
 @Composable
 fun ChatList(
-	onChatClick: (ChatListItem) -> Unit,
-	onLongChatClick: (ChatListItem) -> Unit,
-	chats: List<ChatListItem>,
+	onChatClick: (ChatState) -> Unit,
+	onLongChatClick: (ChatState) -> Unit,
+	chats: ChatListState,
 	modifier: Modifier = Modifier
 ) {
 	LazyColumn(

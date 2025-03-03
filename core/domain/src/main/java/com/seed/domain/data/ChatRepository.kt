@@ -5,6 +5,7 @@ import com.seed.domain.values.ChatId
 import com.seed.domain.values.ChatKey
 import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
+import kotlinx.coroutines.flow.Flow
 
 data class SendMessageDto(
 	val chatId: ChatId,
@@ -32,6 +33,10 @@ sealed interface SendMessageResult {
 
 interface ChatRepository {
 	suspend fun getMessages(chatId: ChatId): List<MessageContent>
+
+	suspend fun getAllMessagesFlow(): Flow<List<MessageContent>>
+
+	suspend fun getLastMessage(chatId: ChatId): MessageContent?
 
 	suspend fun addMessage(chatId: ChatId, message: MessageContent.RegularMessage)
 

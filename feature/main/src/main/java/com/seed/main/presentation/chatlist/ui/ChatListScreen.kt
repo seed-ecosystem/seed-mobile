@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.seed.main.presentation.chatlist.logic.ChatListItem
 import com.seed.main.presentation.chatlist.logic.ChatListScreenUiState
+import com.seed.main.presentation.chatlist.logic.ChatState
 import com.seed.main.presentation.chatlist.logic.generateRandomChats
 import com.seed.main.presentation.chatlist.ui.components.ChatListScreenTopBar
 import com.seed.main.presentation.chatlist.ui.states.ErrorState
@@ -24,8 +25,8 @@ import com.seed.main.presentation.chatlist.ui.states.NoChatsState
 @Composable
 fun ChatListScreen(
 	state: ChatListScreenUiState,
-	onChatClick: (ChatListItem) -> Unit,
-	onLongChatClick: (ChatListItem) -> Unit,
+	onChatClick: (ChatState) -> Unit,
+	onLongChatClick: (ChatState) -> Unit,
 	onChatAddClick: () -> Unit,
 	onImportChatClick: () -> Unit,
 	modifier: Modifier = Modifier
@@ -72,18 +73,18 @@ fun ChatListScreen(
 	}
 }
 
-@Preview
-@Composable
-private fun ChatListScreenPreview() {
-	ChatListScreen(
-		state = ChatListScreenUiState.HasData(
-			generateRandomChats()
-		),
-		onChatClick = {},
-		onLongChatClick = {},
-		onChatAddClick = {},
-		onImportChatClick = {},
-		modifier = Modifier
-			.fillMaxSize()
-	)
-}
+//@Preview
+//@Composable
+//private fun ChatListScreenPreview() {
+//	ChatListScreen(
+//		state = ChatListScreenUiState.HasData(
+//			generateRandomChats()
+//		),
+//		onChatClick = {},
+//		onLongChatClick = {},
+//		onChatAddClick = {},
+//		onImportChatClick = {},
+//		modifier = Modifier
+//			.fillMaxSize()
+//	)
+//}

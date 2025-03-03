@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 fun ChatListRoute(
 	goToChatImport: () -> Unit,
 	goToAddChat: () -> Unit,
-	goToChat: (ChatListItem) -> Unit,
+	goToChat: (chatId: String, chatName: String) -> Unit,
 	vm: ChatListScreenViewModel,
 	modifier: Modifier = Modifier,
 ) {
@@ -33,10 +33,10 @@ fun ChatListRoute(
 
 	ChatListScreen(
 		state = state,
-		onChatClick = goToChat,
+		onChatClick = { goToChat(it.chatId.value, it.name) },
 		onLongChatClick = { chat ->
 			scope.launch {
-				val url = vm.getChatShareUrl(chat.chatId)
+				val url = vm.getChatShareUrl(chat.chatId.value)
 				share(context, url ?: "no")
 			}
 		},
