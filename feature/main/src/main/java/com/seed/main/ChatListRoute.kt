@@ -9,8 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat.startActivity
-import com.seed.main.presentation.chatlist.logic.ChatListItem
 import com.seed.main.presentation.chatlist.logic.ChatListScreenViewModel
 import com.seed.main.presentation.chatlist.ui.ChatListScreen
 import kotlinx.coroutines.launch

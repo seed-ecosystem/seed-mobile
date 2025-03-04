@@ -9,4 +9,5 @@ data class Chat(
 	val name: String,
 	val firstChatKeyNonce: ServerNonce,
 	val serverUrl: ServerUrl,
+	val unreadCount: Int,
 )

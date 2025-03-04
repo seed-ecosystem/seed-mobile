@@ -27,4 +27,8 @@ interface ChatsRepository {
 	suspend fun getChatServerUrl(chatId: ChatId): ServerUrl
 
 	suspend fun getChat(chatId: ChatId): Chat?
+
+	suspend fun addUnreadCount(count: Int, chatId: ChatId)
+
+	suspend fun resetUnreadCount(chatId: ChatId)
 }

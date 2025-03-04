@@ -67,9 +67,18 @@ class ChatsRepositoryImpl(
 					chatName = name,
 					firstChatKeyNonce = keyNonce.value,
 					serverUrl = serverUrl.value,
+					unreadCount = 0,
 				)
 			)
 		}
+	}
+
+	override suspend fun addUnreadCount(count: Int, chatId: ChatId) = withContext(Dispatchers.IO) {
+		chatDao.addUnread(count, chatId.value)
+	}
+
+	override suspend fun resetUnreadCount(chatId: ChatId) = withContext(Dispatchers.IO) {
+		chatDao.resetUnread(chatId.value)
 	}
 
 	override suspend fun delete(chatId: ChatId) = withContext(Dispatchers.IO) {
@@ -82,4 +91,5 @@ private fun ChatDbo.toChat(): Chat = Chat(
 	name = this.chatName,
 	firstChatKeyNonce = ServerNonce(this.firstChatKeyNonce),
 	serverUrl = ServerUrl(this.serverUrl),
+	unreadCount = this.unreadCount,
 )

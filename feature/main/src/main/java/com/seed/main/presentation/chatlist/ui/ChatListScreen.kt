@@ -10,12 +10,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.seed.main.presentation.chatlist.logic.ChatListItem
 import com.seed.main.presentation.chatlist.logic.ChatListScreenUiState
 import com.seed.main.presentation.chatlist.logic.ChatState
-import com.seed.main.presentation.chatlist.logic.generateRandomChats
 import com.seed.main.presentation.chatlist.ui.components.ChatListScreenTopBar
 import com.seed.main.presentation.chatlist.ui.states.ErrorState
 import com.seed.main.presentation.chatlist.ui.states.HasDataState

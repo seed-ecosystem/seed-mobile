@@ -21,7 +21,6 @@ fun ChatList(
 ) {
 	LazyColumn(
 		modifier = modifier,
-		verticalArrangement = Arrangement.spacedBy(8.dp)
 	) {
 		item {
 			Spacer(Modifier.height(8.dp))

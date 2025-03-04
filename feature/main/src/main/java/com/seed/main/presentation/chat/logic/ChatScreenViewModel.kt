@@ -2,9 +2,11 @@ package com.seed.main.presentation.chat.logic
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seed.domain.CurrentChatHandler
 import com.seed.domain.Logger
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.api.SocketConnectionState
+import com.seed.domain.data.ChatsRepository
 import com.seed.domain.data.SettingsRepository
 import com.seed.domain.model.MessageContent
 import com.seed.domain.usecase.SendMessageResult
@@ -66,6 +68,8 @@ data class ChatScreenViewModelOptions(
 
 class ChatScreenViewModel(
 	private val options: ChatScreenViewModelOptions,
+	private val chatsRepository: ChatsRepository,
+	private val currentChatHandler: CurrentChatHandler,
 	private val subscribeToChatUseCase: SubscribeToChatUseCase,
 	private val sendMessageUseCase: SendMessageUseCase,
 	private val workerStateHandle: SeedWorkerStateHandle,
@@ -82,11 +86,19 @@ class ChatScreenViewModel(
 			ChatScreenUiState.Loading("", "", SocketConnectionState.DISCONNECTED)
 		)
 
+	init {
+		currentChatHandler.setChat(options.chatId)
+	}
+
 	fun loadData(
 		onWaitEvent: () -> Unit,
 		onNewMessage: () -> Unit,
 	) {
 		val selfNickname = settingsRepository.getNickname()
+
+		viewModelScope.launch {
+			chatsRepository.resetUnreadCount(options.chatId)
+		}
 
 		viewModelScope.launch {
 			_state.update {

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.seed.domain.values.ChatId
 import com.seed.main.presentation.chatlist.logic.ChatState
 import com.seed.main.presentation.chatlist.logic.LastSentMessage
@@ -43,7 +44,7 @@ fun ChatListItem(
 				onClick = { onClick(chat) },
 				onLongClick = { onLongClick(chat) }
 			)
-			.padding(horizontal = 8.dp)
+			.padding(horizontal = 8.dp, vertical = 4.dp)
 	) {
 		Box(
 			modifier = Modifier
@@ -83,13 +84,34 @@ fun ChatListItem(
 			Spacer(Modifier.height(1.dp))
 
 			val author = chat.lastSentMessage?.author?.plus(":") ?: ""
-			val text = "$author ${chat.lastSentMessage?.text ?: "no messages yet"}".trimIndent() // todo
+			val text =
+				"$author ${chat.lastSentMessage?.text ?: "no messages yet"}".trimIndent() // todo
 
 			Text(
 				text = text,
 				overflow = TextOverflow.Ellipsis,
 				maxLines = 2,
 			)
+		}
+
+		if (chat.unreadCount > 0) {
+			Box(
+				contentAlignment = Alignment.Center,
+				modifier = Modifier
+					.clip(CircleShape)
+					.background(MaterialTheme.colorScheme.primaryContainer)
+					.size(24.dp)
+			) {
+				val unreadCountText = if(chat.unreadCount < 100) chat.unreadCount.toString() else "∞"
+
+				Text(
+					text = unreadCountText,
+					fontSize = 16.sp,
+					fontWeight = FontWeight.Bold,
+					color = MaterialTheme.colorScheme.onPrimaryContainer,
+					modifier = Modifier
+				)
+			}
 		}
 	}
 }
@@ -107,7 +129,8 @@ fun ChatListItemPreview() {
 				"Demn",
 				"Some last message text too long long lorem ipsum dolor. some last message text too long long lorem ipsum dolor. some last message text too long long lorem",
 				receiveTimestamp = System.currentTimeMillis()
-			)
+			),
+			unreadCount = 2
 		),
 		modifier = Modifier.fillMaxWidth()
 	)

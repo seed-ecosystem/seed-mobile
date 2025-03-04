@@ -1,5 +1,6 @@
 package com.seed.mobile.di
 
+import com.seed.domain.CurrentChatHandler
 import com.seed.api.SeedApi
 import com.seed.api.SeedEngine
 import com.seed.api.util.SeedSocket
@@ -45,6 +46,8 @@ val appModule = module {
 	factory<SettingsRepository> { SettingsRepositoryImpl(get(), get()) }
 
 	factory<SeedCoder> { SeedCoder(get()) }
+
+	single<CurrentChatHandler> { CurrentChatHandler() }
 
 	single<SeedSocket> {
 		SeedSocket(

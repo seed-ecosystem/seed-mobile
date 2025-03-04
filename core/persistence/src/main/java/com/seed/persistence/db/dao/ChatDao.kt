@@ -28,4 +28,10 @@ interface ChatDao {
 
 	@Query("SELECT ServerUrl FROM ChatDbo WHERE chatId = :chatId")
 	fun getServerUrlByChatId(chatId: String): String
+
+	@Query("UPDATE chatdbo SET unreadCount = unreadCount + :count WHERE chatId = :chatId")
+	fun addUnread(count: Int, chatId: String)
+
+	@Query("UPDATE chatdbo SET unreadCount = 0 WHERE chatId = :chatId")
+	fun resetUnread(chatId: String)
 }

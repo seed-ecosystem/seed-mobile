@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.seed.api.util.SeedSocket
+import com.seed.domain.CurrentChatHandler
 import com.seed.domain.GetApplicationCoroutineScope
 import com.seed.domain.Logger
 import com.seed.domain.SeedEngine
 import com.seed.domain.SeedWorker
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.api.SeedApi
+import com.seed.domain.countUnread
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.manageSubscriptions
@@ -76,8 +78,10 @@ class MainActivity : ComponentActivity() {
 		val seedEngine = koin.get<SeedEngine>()
 		val seedApi = koin.get<SeedApi>()
 		val chatRepository = koin.get<ChatRepository>()
+		val chatsRepository = koin.get<ChatsRepository>()
 		val worker = koin.get<SeedWorker>()
 		val workerStateHandle = koin.get<SeedWorkerStateHandle>()
+		val currentChatHandler = koin.get<CurrentChatHandler>()
 
 		seedEngine.initialize(lifecycleScope)
 		seedApi.launchConnection(lifecycleScope)
@@ -90,6 +94,13 @@ class MainActivity : ComponentActivity() {
 			chatRepository = koin.get<ChatRepository>(),
 			scope = lifecycleScope,
 			logger = koin.get<Logger>(),
+		)
+
+		countUnread(
+			workerStateHandle = workerStateHandle,
+			chatsRepository = chatsRepository,
+			coroutineScope = lifecycleScope,
+			currentChatHandler = currentChatHandler,
 		)
 
 		lifecycleScope.launch {

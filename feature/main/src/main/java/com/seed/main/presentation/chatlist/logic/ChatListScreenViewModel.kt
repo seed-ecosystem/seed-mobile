@@ -2,6 +2,7 @@ package com.seed.main.presentation.chatlist.logic
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seed.domain.CurrentChatHandler
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.model.Chat
@@ -48,7 +49,7 @@ data class ChatState(
 	val chatId: ChatId,
 	val name: String,
 	val lastSentMessage: LastSentMessage?,
-	val unreadCount: Int = 0, // TODO
+	val unreadCount: Int = 0,
 )
 
 typealias ChatListState = List<ChatState>
@@ -69,9 +70,10 @@ class GetChatListUseCase(
 				val chatStates = chats.map {
 					val last = getLastChatMessage(it.chatId)
 					ChatState(
-						chatId= it.chatId,
+						chatId = it.chatId,
 						name = it.name,
 						lastSentMessage = last,
+						unreadCount = it.unreadCount,
 					)
 				}
 
@@ -104,6 +106,7 @@ class GetChatListUseCase(
 }
 
 class ChatListScreenViewModel(
+	private val currentChatHandler: CurrentChatHandler,
 	private val getChatList: GetChatListUseCase,
 	private val chatsRepository: ChatsRepository,
 	private val getChatUrlUseCase: GetChatUrlUseCase,
@@ -120,6 +123,8 @@ class ChatListScreenViewModel(
 
 	fun loadData() {
 		viewModelScope.launch {
+			currentChatHandler.exitChat()
+
 			_state.update {
 				it.copy(
 					isLoading = true
@@ -130,14 +135,14 @@ class ChatListScreenViewModel(
 
 			getChatList.state
 				.collectLatest { chats ->
-					_state.update { 
+					_state.update {
 						it.copy(
 							isLoading = false,
 							chats = chats,
 						)
 					}
 				}
-			
+
 //			chatsRepository
 //				.getAll()
 //				.map { it.map(Chat::toChatListItem) }
