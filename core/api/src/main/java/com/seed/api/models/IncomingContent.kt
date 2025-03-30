@@ -1,5 +1,9 @@
 package com.seed.api.models
 
+import com.seed.domain.model.ApiEvent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
+import com.seed.domain.values.ServerUrl
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -69,3 +73,30 @@ sealed interface EventContent {
 		val url: String,
 	) : EventContent
 }
+
+internal fun IncomingContent.SubscribeEvent.toChatEvent(): ApiEvent {
+	return when (this.event) {
+		is EventContent.New -> {
+			val newMessage = this.event.message
+
+			ApiEvent.New(
+				chatId = ChatId(newMessage.queueId),
+				encryptedContentBase64 = newMessage.content,
+				encryptedContentIv = newMessage.contentIV,
+				nonce = ServerNonce(newMessage.nonce),
+				signature = newMessage.signature
+			)
+		}
+
+		is EventContent.Disconnected -> {
+			ApiEvent.ServerDisconnect(
+				url = ServerUrl(this.event.url)
+			)
+		}
+
+		is EventContent.Wait -> {
+			ApiEvent.Wait(ChatId(this.event.queueId))
+		}
+	}
+}
+

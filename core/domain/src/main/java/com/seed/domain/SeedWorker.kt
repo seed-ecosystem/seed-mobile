@@ -1,7 +1,7 @@
 package com.seed.domain
 
 import com.seed.domain.api.ApiResponse
-import com.seed.domain.api.SeedApi
+import com.seed.domain.api.SeedEngine
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatsRepository
@@ -61,14 +61,14 @@ interface SeedWorker {
 
 fun SeedWorker(
 	coder: SeedCoder,
-	seedApi: SeedApi,
+	engine: SeedEngine,
 	keyManager: KeyManager,
 	getScope: GetApplicationCoroutineScope,
 	chatsRepository: ChatsRepository,
 	logger: Logger,
 ): SeedWorker {
 	return object : SeedWorker {
-		override val connectionState: StateFlow<SocketConnectionState> = seedApi.connectionState
+		override val connectionState: StateFlow<SocketConnectionState> = engine.connectionState
 
 		private val _events = MutableSharedFlow<WorkerEvent>()
 		override val events: SharedFlow<WorkerEvent> = _events
@@ -148,7 +148,7 @@ fun SeedWorker(
 
 		override fun initializeWorker() {
 			getScope().launch {
-				seedApi.apiEvents.collect { apiEvent ->
+				engine.events.collect { apiEvent ->
 					handleApiEvent(apiEvent)
 				}
 			}
@@ -157,7 +157,7 @@ fun SeedWorker(
 		override suspend fun sendMessage(
 			dto: SendMessageDto,
 		): SendMessageResult {
-			val apiResponse = seedApi.sendMessage(
+			val apiResponse = engine.sendMessage(
 				chatId = dto.chatId,
 				serverUrl = dto.serverUrl,
 				content = dto.encryptedContentBase64,
@@ -173,7 +173,7 @@ fun SeedWorker(
 		}
 
 		override suspend fun subscribe(chatId: ChatId, nonce: ServerNonce, serverUrl: ServerUrl): ApiResponse<Unit> {
-			return seedApi.subscribeToChat(chatId, nonce, serverUrl)
+			return engine.subscribeToChat(chatId, nonce, serverUrl)
 		}
 	}
 }

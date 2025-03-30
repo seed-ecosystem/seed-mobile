@@ -1,6 +1,6 @@
 package com.seed.domain.usecase
 
-import com.seed.domain.SeedEngine
+import com.seed.domain.api.SeedEngine
 import com.seed.domain.SeedWorkerStateHandle
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.values.ChatId

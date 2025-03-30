@@ -1,16 +1,22 @@
 package com.seed.api
 
+import com.seed.api.models.ForwardingResponseStatus
 import com.seed.api.models.IncomingContent
+import com.seed.api.models.SendMessageRequest
+import com.seed.api.models.SubscribeRequest
+import com.seed.api.models.toChatEvent
 import com.seed.api.util.SeedSocket
 import com.seed.api.util.SocketEvent
-import com.seed.domain.EngineEvent
-import com.seed.domain.ForwardingState
-import com.seed.domain.ResponseQueueItem
-import com.seed.domain.SeedEngine
-import com.seed.domain.SocketSendResult
+import com.seed.domain.api.ForwardingState
+import com.seed.domain.Logger
+import com.seed.domain.api.SeedEngine
+import com.seed.domain.api.ApiResponse
 import com.seed.domain.api.SocketConnectionState
 import com.seed.domain.data.ChatsRepository
 import com.seed.domain.data.SettingsRepository
+import com.seed.domain.model.ApiEvent
+import com.seed.domain.values.ChatId
+import com.seed.domain.values.ServerNonce
 import com.seed.domain.values.ServerUrl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -26,6 +32,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.net.URI
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 internal data class PingRequest(
@@ -52,7 +60,18 @@ internal data class ForwardingResponse(
 	val forward: JsonElement,
 )
 
+internal data class ResponseQueueItem(
+	val status: Boolean,
+)
+
+enum class SocketSendResult {
+	SUCCESS,
+	FAILURE,
+}
+
+
 fun SeedEngine(
+	logger: Logger,
 	socket: SeedSocket,
 	settingsRepository: SettingsRepository,
 	chatsRepository: ChatsRepository,
@@ -60,20 +79,21 @@ fun SeedEngine(
 	pingIntervalMillis: Long,
 ): SeedEngine {
 	return object : SeedEngine {
-		override val responseQueue: MutableList<(ResponseQueueItem) -> Unit> =
-			mutableListOf()
+		val responseQueue: MutableList<(ResponseQueueItem) -> Unit> = mutableListOf()
 
 		override val connectionState: StateFlow<SocketConnectionState> = socket.connectionState
 
-		private val _events = MutableSharedFlow<EngineEvent>()
-		override val events: SharedFlow<EngineEvent> = _events
+		private val _events = MutableSharedFlow<ApiEvent>()
+		override val events: SharedFlow<ApiEvent> = _events
 
 		private val _forwardingState = MutableStateFlow(ForwardingState(emptyList()))
 		override val forwardingState: StateFlow<ForwardingState> = _forwardingState
 
+		private var pingJob: Job? = null
+
 		private val json = Json { encodeDefaults = true }
 
-		override fun initialize(scope: CoroutineScope) {
+		override fun launchConnection(scope: CoroutineScope) {
 			val mainServerUrl = settingsRepository.getMainServerUrl() ?: defaultMainServerUrl
 			val uri = getMainServerUri(mainServerUrl.value)
 
@@ -87,7 +107,7 @@ fun SeedEngine(
 
 			scope.launch {
 				socket.events.collect { event ->
-					handleSocketEvents(event, mainServerUrl)
+					handleSocketEvents(event)
 				}
 			}
 
@@ -98,46 +118,87 @@ fun SeedEngine(
 			)
 		}
 
-		private suspend fun handleSocketEvents(event: SocketEvent, mainServerUrl: ServerUrl) {
+		private suspend fun handleSocketEvents(event: SocketEvent) {
 			when (event) {
 				is SocketEvent.IncomingContent -> {
-					handleIncomingContent(event, mainServerUrl)
+					val unwrapped = unwrapIncomingContent(event.content)
+
+					unwrapped?.let {
+						handleUnwrappedIncomingContent(it)
+					}
 				}
 
-				SocketEvent.Connected -> _events.emit(EngineEvent.Connected)
+				SocketEvent.Connected -> _events.emit(ApiEvent.Connected)
 
-				SocketEvent.Disconnected -> _events.emit(EngineEvent.Disconnected)
+				SocketEvent.Disconnected -> _events.emit(ApiEvent.Disconnected)
 
-				SocketEvent.Reconnection -> _events.emit(EngineEvent.Reconnection)
+				SocketEvent.Reconnection -> _events.emit(ApiEvent.Reconnection)
 			}
 		}
 
-		private suspend fun handleIncomingContent(
-			event: SocketEvent.IncomingContent,
-			mainServerUrl: ServerUrl,
-		) {
+		private suspend fun sendToSocket(
+			serverUrl: ServerUrl,
+			jsonRequest: String
+		): SocketSendResult {
+			val forwardingRequest = ForwardingRequest(
+				url = serverUrl.value,
+				request = json.parseToJsonElement(jsonRequest),
+			)
+			val forwardingRequestJson = json.encodeToString(forwardingRequest)
+
+			return socket.send(forwardingRequestJson)
+		}
+
+		private fun unwrapIncomingContent(content: String): String? {
 			try {
-				val response: ForwardingResponse = json.decodeFromString(event.content)
+				val response: ForwardingResponse = json.decodeFromString(content)
 				if (response.type == "forward") {
 					val innerContent = response.forward.toString()
-					_events.emit(
-						EngineEvent.IncomingContent(
-							url = ServerUrl(response.url),
-							content = innerContent,
-						)
-					)
+
+					return innerContent
 				}
 			} catch (ex: SerializationException) {
+				return content
+			}
+
+			return null
+		}
+
+		private suspend fun handleUnwrappedIncomingContent(unwrappedContent: String) {
+			val incomingMessage = try {
+				Json.decodeFromString<IncomingContent>(unwrappedContent)
+			} catch (ex: SerializationException) {
+				try {
+					val forwardingResponse =
+						Json.decodeFromString<ForwardingResponseStatus>(unwrappedContent)
+
+					dequeue(forwardingResponse.status)
+
+					null
+				} catch (ex: SerializationException) {
+
+					logger.e("SeedApi", "Parsing error: ${ex.message}")
+					null
+				}
+			}
+
+			if (incomingMessage is IncomingContent.IncomingResponse) {
+				dequeue(incomingMessage.response.status)
+			}
+
+			if (incomingMessage is IncomingContent.SubscribeEvent) {
 				_events.emit(
-					EngineEvent.IncomingContent(
-						content = event.content,
-						url = mainServerUrl,
-					)
+					incomingMessage.toChatEvent()
 				)
 			}
 		}
 
-		private var pingJob: Job? = null
+		private fun dequeue(status: Boolean) {
+			if (responseQueue.size > 0) {
+				responseQueue[0](ResponseQueueItem(status))
+				responseQueue.removeAt(0)
+			}
+		}
 
 		private suspend fun handleOnConnect(scope: CoroutineScope) {
 			val serverUrls = chatsRepository.getAllServerUrls()
@@ -154,24 +215,114 @@ fun SeedEngine(
 		}
 
 		private suspend fun sendPingEachMillis() {
-			val pingRequestJson = json.encodeToString(PingRequest())
-
 			while (true) {
 				val urls = chatsRepository.getAllServerUrls()
 
 				delay(pingIntervalMillis)
 
-				socket.send(pingRequestJson)
-
-				responseQueue.add {}
+				sendPing(defaultMainServerUrl)
 
 				urls.forEach { url ->
-					send(
-						serverUrl = url,
-						jsonRequest = pingRequestJson
+					sendPing(url)
+				}
+			}
+		}
+
+		override suspend fun stop() {
+			socket.disconnect()
+		}
+
+		override suspend fun sendPing(
+			serverUrl: ServerUrl,
+		): ApiResponse<Unit> {
+			val pingRequestJson = json.encodeToString(PingRequest())
+			sendToSocket(serverUrl, pingRequestJson)
+
+			return suspendCoroutine { continuation ->
+				responseQueue.add { response: ResponseQueueItem ->
+					if (response.status) continuation.resume(ApiResponse.Success(Unit))
+					else continuation.resume(ApiResponse.Failure())
+				}
+			}
+		}
+
+		override suspend fun sendMessage(
+			chatId: ChatId,
+			serverUrl: ServerUrl,
+			content: String,
+			contentIv: String,
+			nonce: ServerNonce,
+			signature: String
+		): ApiResponse<Unit> {
+			val jsonRequest = Json.encodeToString(
+				SendMessageRequest.createSendMessageRequest(
+					chatId = chatId.value,
+					content = content,
+					contentIv = contentIv,
+					nonce = nonce.value,
+					signature = signature,
+				)
+			)
+
+			val sendResult = sendToSocket(serverUrl, jsonRequest)
+
+			if (sendResult == SocketSendResult.FAILURE) {
+				return ApiResponse.Failure()
+			}
+
+			logger.d(
+				tag = "SeedApi",
+				message = "Sent json: $jsonRequest"
+			)
+
+			return suspendCoroutine { continuation ->
+				responseQueue.add { response: ResponseQueueItem ->
+					logger.d(
+						tag = "SeedApi",
+						message = "sendMessage: Response: $response",
 					)
 
-					responseQueue.add {}
+					if (response.status) continuation.resume(ApiResponse.Success(Unit))
+					else continuation.resume(ApiResponse.Failure())
+				}
+			}
+		}
+
+		override suspend fun subscribeToChat(
+			chatId: ChatId,
+			nonce: ServerNonce,
+			serverUrl: ServerUrl
+		): ApiResponse<Unit> {
+			val subscribeRequest = SubscribeRequest(
+				type = "subscribe",
+				queueId = chatId.value,
+				nonce = nonce.value,
+			)
+			val jsonRequest = Json.encodeToString(subscribeRequest)
+
+			val sendResult = sendToSocket(
+				serverUrl = serverUrl,
+				jsonRequest = jsonRequest,
+			)
+
+			if (sendResult == SocketSendResult.FAILURE) {
+				return ApiResponse.Failure()
+			}
+
+			logger.d(
+				tag = "SeedApi",
+				message = "Sent $jsonRequest"
+			)
+
+			return suspendCoroutine { continuation ->
+				responseQueue.add { response: ResponseQueueItem ->
+					logger.d(
+						tag = "SeedApi",
+						message = "Subscribe response: $response"
+					)
+
+					if (response.status) continuation.resume(ApiResponse.Success(Unit))
+					else continuation.resume(ApiResponse.Failure())
 				}
 			}
 		}
@@ -181,21 +332,13 @@ fun SeedEngine(
 				ConnectForwardingRequest(url = url.value)
 			)
 
-			socket.send(request) // TODO: add handling for request responses
-		}
+			socket.send(request)
 
-		override suspend fun stop() {
-			socket.disconnect()
-		}
-
-		override suspend fun send(serverUrl: ServerUrl, jsonRequest: String): SocketSendResult {
-			val forwardingRequest = ForwardingRequest(
-				url = serverUrl.value,
-				request = json.parseToJsonElement(jsonRequest),
-			)
-			val forwardingRequestJson = json.encodeToString(forwardingRequest)
-
-			return socket.send(forwardingRequestJson)
+			responseQueue.add {
+				// TODO()
+				// TODO: In case of "If connection was not successful or if it was closed later server will send you the following event:"
+				// This one probably won't work as expected
+			}
 		}
 
 		private fun getMainServerUri(mainServerUrl: String): URI {

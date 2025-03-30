@@ -1,7 +1,6 @@
 package com.seed.mobile.di
 
 import com.seed.domain.CurrentChatHandler
-import com.seed.api.SeedApi
 import com.seed.api.SeedEngine
 import com.seed.api.util.SeedSocket
 import com.seed.crypto.SeedCoder
@@ -11,10 +10,9 @@ import com.seed.data.ChatsRepositoryImpl
 import com.seed.data.SettingsRepositoryImpl
 import com.seed.domain.KeyManager
 import com.seed.domain.Logger
-import com.seed.domain.SeedEngine
+import com.seed.domain.api.SeedEngine
 import com.seed.domain.SeedWorker
 import com.seed.domain.SeedWorkerStateHandle
-import com.seed.domain.api.SeedApi
 import com.seed.domain.crypto.SeedCoder
 import com.seed.domain.data.ChatKeyRepository
 import com.seed.domain.data.ChatRepository
@@ -58,18 +56,12 @@ val appModule = module {
 
 	single<SeedEngine> {
 		SeedEngine(
+			logger = get(),
 			socket = get(),
 			settingsRepository = get(),
 			chatsRepository = get(),
 			defaultMainServerUrl = ServerUrl("wss://api.meetacy.app/seed-kt"),
 			pingIntervalMillis = 15000L,
-		)
-	}
-
-	single<SeedApi> {
-		SeedApi(
-			logger = get(),
-			engine = get(),
 		)
 	}
 

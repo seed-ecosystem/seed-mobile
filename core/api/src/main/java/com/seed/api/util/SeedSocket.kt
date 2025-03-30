@@ -1,7 +1,7 @@
 package com.seed.api.util
 
+import com.seed.api.SocketSendResult
 import com.seed.domain.Logger
-import com.seed.domain.SocketSendResult
 import com.seed.domain.api.SocketConnectionState
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp

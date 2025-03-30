@@ -1,7 +1,6 @@
 package com.seed.mobile
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,10 +11,9 @@ import com.seed.api.util.SeedSocket
 import com.seed.domain.CurrentChatHandler
 import com.seed.domain.GetApplicationCoroutineScope
 import com.seed.domain.Logger
-import com.seed.domain.SeedEngine
+import com.seed.domain.api.SeedEngine
 import com.seed.domain.SeedWorker
 import com.seed.domain.SeedWorkerStateHandle
-import com.seed.domain.api.SeedApi
 import com.seed.domain.countUnread
 import com.seed.domain.data.ChatRepository
 import com.seed.domain.data.ChatsRepository
@@ -74,17 +72,14 @@ class MainActivity : ComponentActivity() {
 	}
 
 	private fun initializeMessaging(koin: Koin) {
-		val seedSocket = koin.get<SeedSocket>()
 		val seedEngine = koin.get<SeedEngine>()
-		val seedApi = koin.get<SeedApi>()
 		val chatRepository = koin.get<ChatRepository>()
 		val chatsRepository = koin.get<ChatsRepository>()
 		val worker = koin.get<SeedWorker>()
 		val workerStateHandle = koin.get<SeedWorkerStateHandle>()
 		val currentChatHandler = koin.get<CurrentChatHandler>()
 
-		seedEngine.initialize(lifecycleScope)
-		seedApi.launchConnection(lifecycleScope)
+		seedEngine.launchConnection(lifecycleScope)
 		worker.initializeWorker()
 		workerStateHandle.initializeWorkerStateHandle()
 
